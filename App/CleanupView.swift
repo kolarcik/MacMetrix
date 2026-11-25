@@ -23,6 +23,7 @@ struct CleanupView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(minWidth: 620, minHeight: 560)
+        .onDisappear { model.resetIfIdle() }
         .confirmationDialog(confirmTitle, isPresented: $confirming, titleVisibility: .visible) {
             Button(model.moveToTrash ? "Přesunout do Koše" : "Trvale smazat", role: .destructive) { model.clean() }
             Button("Zrušit", role: .cancel) {}

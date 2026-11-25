@@ -29,8 +29,11 @@ final class MonitorStore: ObservableObject {
     let chipName = SystemSampler.chipName
     private let historySeconds: TimeInterval = 300
 
+    // Sampler and sensors are only touched on `samplingQueue` (IOKit / IOHID calls can take tens of ms).
     private let sampler = SystemSampler()
     private let temperatures = TemperatureSensors()
+    private let samplingQueue = DispatchQueue(label: "MacMetrix.sampling", qos: .utility)
+    private var sampling = false
     private var timer: Timer?
     private var pending: [MetricsSnapshot] = []
     private var lastWidgetPush = Date.distantPast
@@ -41,7 +44,8 @@ final class MonitorStore: ObservableObject {
         let savedWidget = UserDefaults.standard.double(forKey: "widgetInterval")
         widgetInterval = savedWidget > 0 ? savedWidget : 10
         minuteHistory = SharedStore.read()?.history.filter { $0.date > Date().addingTimeInterval(-3600) } ?? []
-        _ = sampler.sample() // prime CPU / network counters
+        let sampler = sampler
+        samplingQueue.async { _ = sampler.sample() } // prime CPU / network counters
         enableLaunchAtLoginOnFirstRun()
         startTimer()
     }
@@ -49,16 +53,29 @@ final class MonitorStore: ObservableObject {
     private func startTimer() {
         timer?.invalidate()
         let t = Timer(timeInterval: sampleInterval, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.tick() }
+            Task { @MainActor in self?.sampleInBackground() }
         }
         t.tolerance = sampleInterval * 0.1
         RunLoop.main.add(t, forMode: .common)
         timer = t
     }
 
-    private func tick() {
-        var s = sampler.sample()
-        (s.cpuTemp, s.cpuTempMax, s.ssdTemp) = temperatures.read()
+    private func sampleInBackground() {
+        guard !sampling else { return } // previous sample still running
+        sampling = true
+        let sampler = sampler, temperatures = temperatures
+        samplingQueue.async { [weak self] in
+            var s = sampler.sample()
+            (s.cpuTemp, s.cpuTempMax, s.ssdTemp) = temperatures.read()
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.sampling = false
+                self.publish(s)
+            }
+        }
+    }
+
+    private func publish(_ s: MetricsSnapshot) {
         current = s
         history.append(s)
         let cutoff = s.date.addingTimeInterval(-historySeconds)

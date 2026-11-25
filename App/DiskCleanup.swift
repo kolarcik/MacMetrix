@@ -171,6 +171,15 @@ final class DiskCleanupModel: ObservableObject {
         }
     }
 
+    /// Next time the window opens it starts from the beginning (unless work is still running).
+    func resetIfIdle() {
+        guard phase == .review || phase == .done else { return }
+        phase = .intro
+        results = []
+        freed = 0
+        failures = 0
+    }
+
     func chooseProjectsRoot() {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true

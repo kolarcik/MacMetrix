@@ -28,11 +28,23 @@ enum MenuBarMetrics {
     static func encode(_ metrics: [Metric]) -> String {
         metrics.map(\.rawValue).joined(separator: ",")
     }
+
+    /// Something must always stay in the menu bar, otherwise the app can't be reached.
+    static func restoreIfEmpty() {
+        let raw = UserDefaults.standard.string(forKey: key) ?? all
+        if decode(raw).isEmpty { UserDefaults.standard.set(all, forKey: key) }
+    }
 }
 
 /// Menu bar app: closing the last popover / dashboard window must never quit it.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    /// Opening the app again (Finder, Spotlight) while it runs with no status item brings the default items back.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        MenuBarMetrics.restoreIfEmpty()
+        return true
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Only one status bar popover at a time: when one opens, close the others.
@@ -74,7 +86,9 @@ struct MacMetrixApp: App {
         metricItem(.cpu)
 
         // App icon only when no metric is selected, so the app stays reachable.
-        MenuBarExtra(isInserted: Binding(get: { MenuBarMetrics.decode(metricsRaw).isEmpty }, set: { _ in })) {
+        // If the user ⌘-drags it out anyway, bring the metric items back instead of leaving nothing.
+        MenuBarExtra(isInserted: Binding(get: { MenuBarMetrics.decode(metricsRaw).isEmpty },
+                                         set: { if !$0 { metricsRaw = MenuBarMetrics.all } })) {
             popover
         } label: {
             Image(nsImage: AppGlyph.image)

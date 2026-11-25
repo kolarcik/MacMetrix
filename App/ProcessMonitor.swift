@@ -34,7 +34,8 @@ final class ProcessMonitor: ObservableObject {
     func start() {
         guard isSupported, timer == nil else { return }
         poll()
-        let t = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
+        let t = Timer(timeInterval: 2, repeats: true) { [weak self] timer in
+            guard self != nil else { timer.invalidate(); return }
             Task { @MainActor in self?.poll() }
         }
         RunLoop.main.add(t, forMode: .common)
