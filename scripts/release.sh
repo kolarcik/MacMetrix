@@ -14,7 +14,8 @@ command -v xcodegen >/dev/null && xcodegen generate --quiet
 
 rm -rf build/release dist
 xcodebuild -project MacMetrix.xcodeproj -scheme MacMetrix -configuration Release \
-  -destination "generic/platform=macOS" -derivedDataPath build/release build | grep -E "error|BUILD" || true
+  -destination "generic/platform=macOS" -derivedDataPath build/release \
+  OTHER_CODE_SIGN_FLAGS="--timestamp" CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO build | grep -E "error|BUILD" || true
 
 APP="build/release/Build/Products/Release/MacMetrix.app"
 [[ -d "$APP" ]] || { echo "Build failed"; exit 1; }

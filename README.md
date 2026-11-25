@@ -30,6 +30,14 @@ Aplikace v nastaveném intervalu (výchozí 10 s, v Nastavení 5 s – 1 min) za
 
 Přidání: pravý klik na plochu → *Upravit widgety* → MacMetrix.
 
+## Instalace z DMG
+
+1. Stáhněte `MacMetrix-<verze>.dmg` ze stránky [Releases](https://github.com/kolarcik/MacMetrix/releases).
+2. Otevřete DMG a přetáhněte **MacMetrix** do složky **Aplikace** (starou verzi nahraďte).
+3. Spusťte MacMetrix ze složky Aplikace.
+
+DMG je podepsané certifikátem Developer ID a notarizované u Apple, takže se otevře bez varování. Univerzální build pro Apple Silicon i Intel, vyžaduje macOS 14 nebo novější.
+
 ## Sestavení
 
 Potřeba: Xcode 16+, [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
@@ -53,6 +61,12 @@ S notarizací (doporučeno pro distribuci na další stroje; profil se vytvoří
 NOTARY_PROFILE=synot ./scripts/release.sh
 ```
 
+Instalační DMG (`dist/MacMetrix-<verze>.dmg`, verze z `MARKETING_VERSION` v `project.yml`):
+
+```bash
+NOTARY_PROFILE=synot ./scripts/make-dmg.sh
+```
+
 ## Instalace na Mac mini
 
 1. Zkopírovat `dist/MacMetrix.zip` a `dist/install.sh` na stroj (např. `scp`).
@@ -66,6 +80,6 @@ NOTARY_PROFILE=synot ./scripts/release.sh
 App/       menu bar aplikace (MenuBarExtra, popover, dashboard, store, login item)
 Widget/    WidgetKit extension
 Shared/    měření metrik, sdílený stav, společné SwiftUI komponenty (gauge, grafy)
-scripts/   release.sh, install.sh, make-icon.swift (generuje ikonu aplikace)
+scripts/   release.sh, make-dmg.sh, install.sh, make-icon.swift (generuje ikonu aplikace)
 project.yml  definice projektu pro XcodeGen
 ```
