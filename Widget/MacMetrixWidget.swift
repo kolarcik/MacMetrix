@@ -21,6 +21,7 @@ struct MetricsProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<MetricsEntry>) -> Void) {
         let entry = makeEntry()
+        SharedStore.noteWidgetReload(fromApp: Date().timeIntervalSince(entry.snapshot.date) < 180)
         // The app pushes a reload every minute; this is the fallback when it isn't running.
         completion(Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(60))))
     }

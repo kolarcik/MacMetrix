@@ -25,6 +25,25 @@ enum SharedStore {
         return try? JSONDecoder().decode(SharedState.self, from: data)
     }
 
+    /// Diagnostics: the widget records each timeline request so the app can show when it last refreshed.
+    static func noteWidgetReload(fromApp: Bool) {
+        guard let groupID, let dir = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupID) else { return }
+        let url = dir.appendingPathComponent("widget-reloads.log")
+        let line = "\(ISO8601DateFormatter().string(from: Date())) \(fromApp ? "app" : "self")\n"
+        var text = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        text += line
+        let lines = text.split(separator: "\n").suffix(200)
+        try? (lines.joined(separator: "\n") + "\n").write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    /// Time of the widget's most recent timeline request, if any.
+    static func lastWidgetReload() -> Date? {
+        guard let groupID, let dir = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupID),
+              let text = try? String(contentsOf: dir.appendingPathComponent("widget-reloads.log"), encoding: .utf8),
+              let last = text.split(separator: "\n").last?.split(separator: " ").first else { return nil }
+        return ISO8601DateFormatter().date(from: String(last))
+    }
+
     static func write(_ state: SharedState) {
         guard let url = fileURL, let data = try? JSONEncoder().encode(state) else { return }
         try? data.write(to: url, options: .atomic)

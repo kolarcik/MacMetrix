@@ -33,6 +33,15 @@ struct SettingsView: View {
                     Text("5 s").tag(5.0)
                 }
                 .pickerStyle(.segmented)
+                TimelineView(.periodic(from: .now, by: 15)) { _ in
+                    LabeledContent("Widget naposledy obnoven") {
+                        if let d = SharedStore.lastWidgetReload() {
+                            Text(d, format: .dateTime.hour().minute().second())
+                        } else {
+                            Text("zatím ne – přidej widget na plochu")
+                        }
+                    }
+                }
             }
 
             Section {

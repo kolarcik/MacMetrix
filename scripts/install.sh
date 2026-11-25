@@ -7,6 +7,8 @@ TMP=$(mktemp -d)
 ditto -x -k "$ZIP" "$TMP"
 
 pkill -x "MacMetrix" 2>/dev/null || true
+# The widget extension keeps running from the old bundle and would not pick up new data / code.
+pkill -f "MacMetrixWidget.appex" 2>/dev/null || true
 rm -rf "/Applications/MacMetrix.app"
 ditto "$TMP/MacMetrix.app" "/Applications/MacMetrix.app"
 xattr -dr com.apple.quarantine "/Applications/MacMetrix.app" 2>/dev/null || true
