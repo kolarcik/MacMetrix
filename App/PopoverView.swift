@@ -32,102 +32,39 @@ struct PopoverView: View {
     }
 }
 
-/// Dashboard / settings / quit row shared by every popover, with the inline settings panel.
+/// Dashboard / settings / quit row shared by every popover. Dashboard and settings open in their own windows.
 struct PopoverFooter: View {
-    @EnvironmentObject var store: MonitorStore
     @Environment(\.openWindow) private var openWindow
-    @AppStorage("menuBarStyle") private var style: MenuBarStyle = .stacked
-    @State private var showSettings = false
-    @AppStorage(MenuBarMetrics.key) private var metricsRaw = MenuBarMetrics.all
-
-    private func metricBinding(_ m: Metric) -> Binding<Bool> {
-        Binding(
-            get: { MenuBarMetrics.decode(metricsRaw).contains(m) },
-            set: { on in
-                var list = MenuBarMetrics.decode(metricsRaw).filter { $0 != m }
-                if on { list.append(m) }
-                metricsRaw = MenuBarMetrics.encode(Metric.allCases.filter(list.contains))
-            })
-    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Button {
-                    NSApp.activate(ignoringOtherApps: true)
-                    openWindow(id: "dashboard")
-                } label: {
-                    Label("Dashboard", systemImage: "rectangle.3.group")
-                }
-                Spacer()
-                Button {
-                    withAnimation(.easeInOut(duration: 0.15)) { showSettings.toggle() }
-                } label: {
-                    Image(systemName: showSettings ? "gearshape.fill" : "gearshape")
-                }
-                .buttonStyle(.borderless)
-                .help("Nastavení")
-                Button {
-                    NSApp.terminate(nil)
-                } label: {
-                    Image(systemName: "power")
-                }
-                .buttonStyle(.borderless)
-                .help("Ukončit MacMetrix")
+        HStack {
+            Button {
+                open("dashboard")
+            } label: {
+                Label("Dashboard", systemImage: "rectangle.3.group")
             }
-            if showSettings { settings }
+            Spacer()
+            Button {
+                open("settings")
+            } label: {
+                Image(systemName: "gearshape")
+            }
+            .buttonStyle(.borderless)
+            .help("Nastavení")
+            Button {
+                NSApp.terminate(nil)
+            } label: {
+                Image(systemName: "power")
+            }
+            .buttonStyle(.borderless)
+            .help("Ukončit MacMetrix")
         }
     }
 
-    /// Settings live inline in the popover: nested menus / popups are unreliable inside MenuBarExtra windows.
-    private var settings: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Toggle("Spouštět po přihlášení", isOn: Binding(
-                get: { store.launchAtLogin },
-                set: { store.setLaunchAtLogin($0) }))
-                .toggleStyle(.switch)
-                .controlSize(.small)
-            if let err = store.loginItemError {
-                Text(err).font(.caption2).foregroundStyle(.red)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Ukazatele ve stavové liště").font(.caption).foregroundStyle(.secondary)
-                HStack(spacing: 10) {
-                    ForEach(Metric.allCases) { m in
-                        Toggle(m.title, isOn: metricBinding(m))
-                            .toggleStyle(.checkbox)
-                    }
-                }
-                if MenuBarMetrics.decode(metricsRaw).isEmpty {
-                    Text("Nic nevybráno – ve stavové liště bude jen ikona aplikace.").font(.caption2).foregroundStyle(.secondary)
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Vzhled ukazatelů").font(.caption).foregroundStyle(.secondary)
-                Picker("", selection: $style) {
-                    ForEach(MenuBarStyle.allCases) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Interval měření").font(.caption).foregroundStyle(.secondary)
-                Picker("", selection: Binding(
-                    get: { store.sampleInterval },
-                    set: { store.sampleInterval = $0 })) {
-                    Text("1 s").tag(1.0)
-                    Text("2 s").tag(2.0)
-                    Text("5 s").tag(5.0)
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            }
-        }
-        .padding(10)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+    private func open(_ id: String) {
+        MenuBarWindows.closeAll()
+        NSApp.activate(ignoringOtherApps: true)
+        openWindow(id: id)
     }
 }
 

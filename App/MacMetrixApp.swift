@@ -33,6 +33,27 @@ enum MenuBarMetrics {
 /// Menu bar app: closing the last popover / dashboard window must never quit it.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Only one status bar popover at a time: when one opens, close the others.
+        NotificationCenter.default.addObserver(forName: NSWindow.didBecomeKeyNotification, object: nil, queue: .main) { note in
+            guard let window = note.object as? NSWindow, MenuBarWindows.isPopover(window) else { return }
+            MenuBarWindows.closeAll(except: window)
+        }
+    }
+}
+
+/// Helpers for the windows SwiftUI creates for `MenuBarExtra(.window)`.
+enum MenuBarWindows {
+    static func isPopover(_ window: NSWindow) -> Bool {
+        String(describing: type(of: window)).contains("MenuBarExtraWindow")
+    }
+
+    static func closeAll(except keep: NSWindow? = nil) {
+        for w in NSApp.windows where w !== keep && w.isVisible && isPopover(w) {
+            w.close()
+        }
+    }
 }
 
 @main
@@ -65,6 +86,12 @@ struct MacMetrixApp: App {
                 .environmentObject(store)
         }
         .defaultSize(width: 820, height: 780)
+
+        Window("Nastavení MacMetrix", id: "settings") {
+            SettingsView()
+                .environmentObject(store)
+        }
+        .windowResizability(.contentSize)
     }
 
     private var popover: some View {

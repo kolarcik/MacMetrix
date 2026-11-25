@@ -80,8 +80,8 @@ struct MetricDetailView: View {
             return (GaugeSpec(caption: "Čtení", value: s.diskRead / peak(\.diskRead), label: Fmt.shortRate(s.diskRead), color: .pink),
                     GaugeSpec(caption: "Zápis", value: s.diskWrite / peak(\.diskWrite), label: Fmt.shortRate(s.diskWrite), color: .indigo))
         case .net:
-            return (GaugeSpec(caption: "Stahování", value: s.netIn / peak(\.netIn), label: Fmt.shortRate(s.netIn), color: .green),
-                    GaugeSpec(caption: "Odesílání", value: s.netOut / peak(\.netOut), label: Fmt.shortRate(s.netOut), color: .teal))
+            return (GaugeSpec(caption: "Stahování", value: s.netIn / peak(\.netIn), label: Fmt.shortRate(s.netIn), color: Metric.net.inColor),
+                    GaugeSpec(caption: "Odesílání", value: s.netOut / peak(\.netOut), label: Fmt.shortRate(s.netOut), color: Metric.net.outColor))
         }
     }
 
@@ -148,8 +148,8 @@ struct MetricDetailView: View {
             DetailRow("Volno", Fmt.gb(s.diskTotal > s.diskUsed ? s.diskTotal - s.diskUsed : 0), dot: .gray.opacity(0.5))
             DetailRow("Celkem", Fmt.gb(s.diskTotal))
         case .net:
-            DetailRow(s.netInViaTunnel == true ? "Stahování (VPN)" : "Stahování", Fmt.rate(s.netIn), dot: .green)
-            DetailRow("Odesílání", Fmt.rate(s.netOut), dot: .teal)
+            DetailRow(s.netInViaTunnel == true ? "Stahování (VPN)" : "Stahování", Fmt.rate(s.netIn), dot: Metric.net.inColor)
+            DetailRow("Odesílání", Fmt.rate(s.netOut), dot: Metric.net.outColor)
             DetailRow("Přijato od startu", s.netInTotal.map(Fmt.bytes) ?? "–")
             DetailRow("Odesláno od startu", s.netOutTotal.map(Fmt.bytes) ?? "–")
         }

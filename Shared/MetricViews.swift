@@ -73,7 +73,9 @@ enum Metric: String, CaseIterable, Identifiable {
 
 extension Metric {
     /// Color of the second series (OUT / write) in rate charts.
-    var outColor: Color { self == .disk ? .indigo : .teal }
+    var outColor: Color { self == .disk ? .indigo : .red }
+    /// Color of the first series (IN / read) in rate charts.
+    var inColor: Color { self == .net ? .blue : color }
 
     /// Text inside ring gauges – network shows IN and OUT on two lines.
     func ringLabel(_ s: MetricsSnapshot) -> String {
@@ -91,7 +93,7 @@ struct InOutLegend: View {
         let net = metric == .net
         HStack(spacing: 10) {
             item(net ? (snapshot.netInViaTunnel == true ? "IN ↓ (VPN)" : "IN ↓") : "R",
-                 net ? snapshot.netIn : snapshot.diskRead, metric.color)
+                 net ? snapshot.netIn : snapshot.diskRead, metric.inColor)
             item(net ? "OUT ↑" : "W", net ? snapshot.netOut : snapshot.diskWrite, metric.outColor)
         }
     }
@@ -147,7 +149,7 @@ struct Sparkline: View {
     var showAxis = false
 
     init(history: [MetricsSnapshot], metric: Metric, showAxis: Bool = false) {
-        color = metric.color
+        color = metric.inColor
         outColor = metric.outColor
         self.showAxis = showAxis
         switch metric {

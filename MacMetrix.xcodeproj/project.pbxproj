@@ -10,6 +10,7 @@
 		0962B5398A1276925BBCFDF7 /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BD9BD0CE505FFEE77BF10EF /* PopoverView.swift */; };
 		218EAD16D63528D3206A1DFA /* MacMetrixWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFA564C84568B3235BB6CE8 /* MacMetrixWidget.swift */; };
 		3E394541D3ED1EF40890A2D9 /* MetricViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2965447E6B504781A65A7049 /* MetricViews.swift */; };
+		4E478CB7C801ED95AFBCD6A6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F60B825524C59FFE964B2A /* SettingsView.swift */; };
 		5E34924069F87B75FBBE54E0 /* MacMetrixApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BDE714A7DA483E11604DC4C /* MacMetrixApp.swift */; };
 		66F1B641FBC83B6183EC724A /* MonitorStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D389A7E8B81F7E35E234B6 /* MonitorStore.swift */; };
 		7CB86670AF4C9A4C4C594341 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 350488C62AC8DB4E9BDD696E /* DashboardView.swift */; };
@@ -59,6 +60,7 @@
 		3BDE714A7DA483E11604DC4C /* MacMetrixApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacMetrixApp.swift; sourceTree = "<group>"; };
 		49C10511A5288CEC27F5CE3A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4A0A31939BB15044A41F2748 /* SystemSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSampler.swift; sourceTree = "<group>"; };
+		50F60B825524C59FFE964B2A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		7BA535540A605EF76A9B4A16 /* MacMetrixWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MacMetrixWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7F22A3F2F63994A347A54195 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1D168F9BF1290D357E45167 /* MacMetrix.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacMetrix.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -101,6 +103,7 @@
 				F6D389A7E8B81F7E35E234B6 /* MonitorStore.swift */,
 				3BD9BD0CE505FFEE77BF10EF /* PopoverView.swift */,
 				D14A48DE36CA87116392802B /* ProcessMonitor.swift */,
+				50F60B825524C59FFE964B2A /* SettingsView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -226,6 +229,7 @@
 				66F1B641FBC83B6183EC724A /* MonitorStore.swift in Sources */,
 				0962B5398A1276925BBCFDF7 /* PopoverView.swift in Sources */,
 				B3B28F89257446DFE6F86919 /* ProcessMonitor.swift in Sources */,
+				4E478CB7C801ED95AFBCD6A6 /* SettingsView.swift in Sources */,
 				7D2290EEB0738520FB8ABE26 /* SharedStore.swift in Sources */,
 				E0F03C654BA5EBBAF1D860F2 /* SystemSampler.swift in Sources */,
 			);
