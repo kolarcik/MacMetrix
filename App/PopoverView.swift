@@ -5,6 +5,7 @@ struct PopoverView: View {
     @EnvironmentObject var store: MonitorStore
     @Environment(\.openWindow) private var openWindow
     @AppStorage("menuBarStyle") private var style: MenuBarStyle = .bars
+    @State private var showSettings = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -34,42 +35,70 @@ struct PopoverView: View {
     }
 
     private var footer: some View {
-        HStack {
-            Button {
-                NSApp.activate(ignoringOtherApps: true)
-                openWindow(id: "dashboard")
-            } label: {
-                Label("Dashboard", systemImage: "rectangle.3.group")
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Button {
+                    NSApp.activate(ignoringOtherApps: true)
+                    openWindow(id: "dashboard")
+                } label: {
+                    Label("Dashboard", systemImage: "rectangle.3.group")
+                }
+                Spacer()
+                Button {
+                    withAnimation(.easeInOut(duration: 0.15)) { showSettings.toggle() }
+                } label: {
+                    Image(systemName: showSettings ? "gearshape.fill" : "gearshape")
+                }
+                .buttonStyle(.borderless)
+                .help("Nastavení")
+                Button {
+                    NSApp.terminate(nil)
+                } label: {
+                    Image(systemName: "power")
+                }
+                .buttonStyle(.borderless)
+                .help("Ukončit MacMetrix")
             }
-            Spacer()
-            Menu {
-                Toggle("Spouštět po přihlášení", isOn: Binding(
-                    get: { store.launchAtLogin },
-                    set: { store.setLaunchAtLogin($0) }))
-                Picker("Ve stavové liště", selection: $style) {
+            if showSettings { settings }
+        }
+    }
+
+    /// Settings live inline in the popover: nested menus / popups are unreliable inside MenuBarExtra windows.
+    private var settings: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Toggle("Spouštět po přihlášení", isOn: Binding(
+                get: { store.launchAtLogin },
+                set: { store.setLaunchAtLogin($0) }))
+                .toggleStyle(.switch)
+                .controlSize(.small)
+            if let err = store.loginItemError {
+                Text(err).font(.caption2).foregroundStyle(.red)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Ve stavové liště").font(.caption).foregroundStyle(.secondary)
+                Picker("", selection: $style) {
                     ForEach(MenuBarStyle.allCases) { Text($0.title).tag($0) }
                 }
-                Picker("Interval měření", selection: Binding(
+                .pickerStyle(.radioGroup)
+                .labelsHidden()
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Interval měření").font(.caption).foregroundStyle(.secondary)
+                Picker("", selection: Binding(
                     get: { store.sampleInterval },
                     set: { store.sampleInterval = $0 })) {
                     Text("1 s").tag(1.0)
                     Text("2 s").tag(2.0)
                     Text("5 s").tag(5.0)
                 }
-                Divider()
-                Button("Ukončit MacMetrix") { NSApp.terminate(nil) }
-            } label: {
-                Image(systemName: "gearshape")
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-        }
-        .overlay(alignment: .top) {
-            if let err = store.loginItemError {
-                Text(err).font(.caption2).foregroundStyle(.red).offset(y: -18)
+                .pickerStyle(.segmented)
+                .labelsHidden()
             }
         }
+        .padding(10)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
     }
 }
 
