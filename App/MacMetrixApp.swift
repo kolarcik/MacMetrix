@@ -2,15 +2,29 @@ import SwiftUI
 import ServiceManagement
 
 enum MenuBarStyle: String, CaseIterable, Identifiable {
-    case bars, cpu, text, icon
+    case bars, text, icon
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .bars: "Sloupce (C CPU · G GPU · R RAM · D Disk · S Síť)"
-        case .cpu: "Ikona + CPU %"
-        case .text: "Text (CPU, GPU, RAM)"
+        case .bars: "Sloupce s písmeny"
+        case .text: "Text"
         case .icon: "Jen ikona"
         }
+    }
+}
+
+/// Which metrics are shown in the status bar, stored as a comma-separated string in UserDefaults.
+enum MenuBarMetrics {
+    static let key = "menuBarMetrics"
+    static let all = Metric.allCases.map(\.rawValue).joined(separator: ",")
+
+    static func decode(_ raw: String) -> [Metric] {
+        let set = Set(raw.split(separator: ",").map(String.init))
+        return Metric.allCases.filter { set.contains($0.rawValue) }
+    }
+
+    static func encode(_ metrics: [Metric]) -> String {
+        metrics.map(\.rawValue).joined(separator: ",")
     }
 }
 
@@ -18,13 +32,14 @@ enum MenuBarStyle: String, CaseIterable, Identifiable {
 struct MacMetrixApp: App {
     @StateObject private var store = MonitorStore()
     @AppStorage("menuBarStyle") private var style: MenuBarStyle = .bars
+    @AppStorage(MenuBarMetrics.key) private var metricsRaw = MenuBarMetrics.all
 
     var body: some Scene {
         MenuBarExtra {
             PopoverView()
                 .environmentObject(store)
         } label: {
-            MenuBarLabel(snapshot: store.current, style: style)
+            MenuBarLabel(snapshot: store.current, style: style, metrics: MenuBarMetrics.decode(metricsRaw))
         }
         .menuBarExtraStyle(.window)
 
@@ -40,28 +55,29 @@ struct MacMetrixApp: App {
 struct MenuBarLabel: View {
     var snapshot: MetricsSnapshot
     var style: MenuBarStyle
+    var metrics: [Metric]
 
     var body: some View {
-        switch style {
-        case .bars:
-            Image(nsImage: Self.barsImage(snapshot))
-        case .cpu:
-            HStack(spacing: 3) {
-                Image(systemName: "gauge.with.dots.needle.67percent")
-                Text(Fmt.percent(snapshot.cpu)).monospacedDigit()
-            }
-        case .text:
-            Text("CPU \(Fmt.percent(snapshot.cpu))  GPU \(Fmt.percent(snapshot.gpu))  RAM \(Fmt.percent(snapshot.memFraction))")
-                .monospacedDigit()
-        case .icon:
+        if style == .icon || metrics.isEmpty {
             Image(systemName: "gauge.with.dots.needle.67percent")
+        } else if style == .bars {
+            Image(nsImage: Self.barsImage(snapshot, metrics: metrics))
+        } else {
+            Text(metrics.map { Self.text(for: $0, snapshot) }.joined(separator: "  "))
+                .monospacedDigit()
+        }
+    }
+
+    static func text(for m: Metric, _ s: MetricsSnapshot) -> String {
+        switch m {
+        case .net: "↓\(Fmt.shortRate(s.netIn)) ↑\(Fmt.shortRate(s.netOut))"
+        default: "\(m.title) \(m.valueText(s))"
         }
     }
 
     /// Tiny vertical bars with a letter under each (C GPU RAM Disk Síť), drawn as a
     /// template image so it adapts to light / dark menu bar.
-    static func barsImage(_ s: MetricsSnapshot) -> NSImage {
-        let metrics = Metric.allCases
+    static func barsImage(_ s: MetricsSnapshot, metrics: [Metric]) -> NSImage {
         let barW: CGFloat = 5, gap: CGFloat = 3
         let labelH: CGFloat = 7, spacing: CGFloat = 1.5, barH: CGFloat = 11
         let h = labelH + spacing + barH

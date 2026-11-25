@@ -6,6 +6,17 @@ struct PopoverView: View {
     @Environment(\.openWindow) private var openWindow
     @AppStorage("menuBarStyle") private var style: MenuBarStyle = .bars
     @State private var showSettings = false
+    @AppStorage(MenuBarMetrics.key) private var metricsRaw = MenuBarMetrics.all
+
+    private func metricBinding(_ m: Metric) -> Binding<Bool> {
+        Binding(
+            get: { MenuBarMetrics.decode(metricsRaw).contains(m) },
+            set: { on in
+                var list = MenuBarMetrics.decode(metricsRaw).filter { $0 != m }
+                if on { list.append(m) }
+                metricsRaw = MenuBarMetrics.encode(Metric.allCases.filter(list.contains))
+            })
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -82,6 +93,20 @@ struct PopoverView: View {
                 }
                 .pickerStyle(.radioGroup)
                 .labelsHidden()
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Zobrazit ve stavové liště").font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 10) {
+                    ForEach(Metric.allCases) { m in
+                        Toggle(m.title, isOn: metricBinding(m))
+                            .toggleStyle(.checkbox)
+                    }
+                }
+                .disabled(style == .icon)
+                if MenuBarMetrics.decode(metricsRaw).isEmpty && style != .icon {
+                    Text("Nic nevybráno – zobrazí se jen ikona.").font(.caption2).foregroundStyle(.secondary)
+                }
             }
 
             VStack(alignment: .leading, spacing: 4) {
