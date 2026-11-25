@@ -4,7 +4,7 @@ import SwiftUI
 struct PopoverView: View {
     @EnvironmentObject var store: MonitorStore
     @Environment(\.openWindow) private var openWindow
-    @AppStorage("menuBarStyle") private var style: MenuBarStyle = .bars
+    @AppStorage("menuBarStyle") private var style: MenuBarStyle = .iconValue
     @State private var showSettings = false
     @AppStorage(MenuBarMetrics.key) private var metricsRaw = MenuBarMetrics.all
 
@@ -87,26 +87,25 @@ struct PopoverView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Ve stavové liště").font(.caption).foregroundStyle(.secondary)
-                Picker("", selection: $style) {
-                    ForEach(MenuBarStyle.allCases) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.radioGroup)
-                .labelsHidden()
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Zobrazit ve stavové liště").font(.caption).foregroundStyle(.secondary)
+                Text("Ukazatele ve stavové liště").font(.caption).foregroundStyle(.secondary)
                 HStack(spacing: 10) {
                     ForEach(Metric.allCases) { m in
                         Toggle(m.title, isOn: metricBinding(m))
                             .toggleStyle(.checkbox)
                     }
                 }
-                .disabled(style == .icon)
-                if MenuBarMetrics.decode(metricsRaw).isEmpty && style != .icon {
-                    Text("Nic nevybráno – zobrazí se jen ikona.").font(.caption2).foregroundStyle(.secondary)
+                if MenuBarMetrics.decode(metricsRaw).isEmpty {
+                    Text("Nic nevybráno – ve stavové liště bude jen ikona aplikace.").font(.caption2).foregroundStyle(.secondary)
                 }
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Vzhled ukazatelů").font(.caption).foregroundStyle(.secondary)
+                Picker("", selection: $style) {
+                    ForEach(MenuBarStyle.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
             }
 
             VStack(alignment: .leading, spacing: 4) {

@@ -4,7 +4,7 @@ Menu bar aplikace pro macOS 14+ sledující zatížení **CPU, GPU, RAM, disku a
 
 ## Co umí
 
-- **Ikona ve stavové liště** – sloupce s písmeny C · G · R · D · S (CPU · GPU · RAM · Disk · Síť), text, nebo jen ikona. Které metriky se v liště zobrazí, se vybírá zaškrtávátky v ⚙︎.
+- **Samostatné ukazatele ve stavové liště** – CPU, GPU, RAM, Disk a Síť mají každý vlastní položku; které se zobrazí, se vybírá zaškrtávátky v ⚙︎. Vzhled: *Ikona + hodnota*, *Text* nebo *Sloupec*. Když není vybrané nic, zobrazí se jen ikona aplikace. Položky jde přeskládat přes ⌘ + tažení.
 - **Popover** po kliknutí: hodnoty + grafy za posledních 5 minut, load average, uptime.
 - **Dashboard okno** – velké gauge, grafy (5 min / 1 hod) a vytížení jednotlivých jader CPU.
 - **Widgety na plochu** (malý / střední / velký) s historií za poslední hodinu.
@@ -64,6 +64,6 @@ NOTARY_PROFILE=synot ./scripts/release.sh
 App/       menu bar aplikace (MenuBarExtra, popover, dashboard, store, login item)
 Widget/    WidgetKit extension
 Shared/    měření metrik, sdílený stav, společné SwiftUI komponenty (gauge, grafy)
-scripts/   release.sh, install.sh
+scripts/   release.sh, install.sh, make-icon.swift (generuje ikonu aplikace)
 project.yml  definice projektu pro XcodeGen
 ```
