@@ -15,6 +15,17 @@ enum Metric: String, CaseIterable, Identifiable {
         }
     }
 
+    /// One-letter label under the menu bar bars.
+    var letter: String {
+        switch self {
+        case .cpu: "C"
+        case .gpu: "G"
+        case .ram: "R"
+        case .disk: "D"
+        case .net: "S"
+        }
+    }
+
     var symbol: String {
         switch self {
         case .cpu: "cpu"

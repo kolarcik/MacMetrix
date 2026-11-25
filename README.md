@@ -4,7 +4,7 @@ Menu bar aplikace pro macOS 14+ sledující zatížení **CPU, GPU, RAM, disku a
 
 ## Co umí
 
-- **Ikona ve stavové liště** – 5 mini sloupců (CPU · GPU · RAM · Disk · Síť), případně text / jen ikona (nastavení v ⚙︎).
+- **Ikona ve stavové liště** – 5 mini sloupců s písmeny C · G · R · D · S (CPU · GPU · RAM · Disk · Síť), případně text / jen ikona (nastavení v ⚙︎).
 - **Popover** po kliknutí: hodnoty + grafy za posledních 5 minut, load average, uptime.
 - **Dashboard okno** – velké gauge, grafy (5 min / 1 hod) a vytížení jednotlivých jader CPU.
 - **Widgety na plochu** (malý / střední / velký) s historií za poslední hodinu.
