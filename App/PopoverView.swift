@@ -4,7 +4,7 @@ import SwiftUI
 struct PopoverView: View {
     @EnvironmentObject var store: MonitorStore
     @Environment(\.openWindow) private var openWindow
-    @AppStorage("menuBarStyle") private var style: MenuBarStyle = .iconValue
+    @AppStorage("menuBarStyle") private var style: MenuBarStyle = .stacked
     @State private var showSettings = false
     @AppStorage(MenuBarMetrics.key) private var metricsRaw = MenuBarMetrics.all
 

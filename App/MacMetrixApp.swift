@@ -3,11 +3,12 @@ import ServiceManagement
 
 /// How each metric's status bar item looks.
 enum MenuBarStyle: String, CaseIterable, Identifiable {
-    case iconValue, text, bars
+    case stacked, iconValue, text, bars
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .iconValue: "Ikona + hodnota"
+        case .stacked: "Dvouřádkově"
+        case .iconValue: "Ikona"
         case .text: "Text"
         case .bars: "Sloupec"
         }
@@ -38,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct MacMetrixApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var store = MonitorStore()
-    @AppStorage("menuBarStyle") private var style: MenuBarStyle = .iconValue
+    @AppStorage("menuBarStyle") private var style: MenuBarStyle = .stacked
     @AppStorage(MenuBarMetrics.key) private var metricsRaw = MenuBarMetrics.all
 
     var body: some Scene {
@@ -91,34 +92,90 @@ struct MacMetrixApp: App {
     }
 }
 
-/// Content of a single metric's status bar item.
+/// Content of a single metric's status bar item. Always a fixed-width template image,
+/// so items don't shift sideways as values change.
 struct MetricStatusLabel: View {
     var metric: Metric
     var snapshot: MetricsSnapshot
     var style: MenuBarStyle
 
     var body: some View {
+        Image(nsImage: StatusImage.render(metric, snapshot, style))
+            .accessibilityLabel("\(metric.title) \(metric.valueText(snapshot))")
+    }
+}
+
+/// Draws status bar items with widths computed from the widest possible value.
+enum StatusImage {
+    static let height: CGFloat = 22
+
+    static func render(_ m: Metric, _ s: MetricsSnapshot, _ style: MenuBarStyle) -> NSImage {
         switch style {
-        case .iconValue:
-            HStack(spacing: 3) {
-                Image(systemName: metric.symbol)
-                Text(value).monospacedDigit()
-            }
-        case .text:
-            Text(metric == .net ? value : "\(metric.title) \(value)").monospacedDigit()
-        case .bars:
-            Image(nsImage: Self.barImage(metric, snapshot))
+        case .stacked: m == .net ? netStacked(s) : stacked(m, s)
+        case .iconValue: iconValue(m, s)
+        case .text: text(m, s)
+        case .bars: bar(m, s)
         }
     }
 
-    private var value: String {
-        metric == .net
-            ? "↓\(Fmt.shortRate(snapshot.netIn)) ↑\(Fmt.shortRate(snapshot.netOut))"
-            : metric.valueText(snapshot)
+    // MARK: Styles
+
+    /// Small caption on top, big value below (like iStat Menus).
+    private static func stacked(_ m: Metric, _ s: MetricsSnapshot) -> NSImage {
+        let labelFont = NSFont.systemFont(ofSize: 8.5, weight: .medium)
+        let valueFont = NSFont.monospacedDigitSystemFont(ofSize: 12.5, weight: .semibold)
+        let label = m.title.uppercased()
+        let w = max(width("100%", valueFont), width(label, labelFont))
+        return image(width: w) {
+            draw(label, labelFont, x: 0, baseline: 14)
+            draw(m.valueText(s), valueFont, x: 0, baseline: 2.5)
+        }
     }
 
-    /// A single vertical bar with the metric's letter under it, drawn as a template image.
-    static func barImage(_ m: Metric, _ s: MetricsSnapshot) -> NSImage {
+    /// Upload on top, download below, values right-aligned.
+    private static func netStacked(_ s: MetricsSnapshot) -> NSImage {
+        image(width: netBlockWidth) { drawNetBlock(s, x: 0) }
+    }
+
+    private static func iconValue(_ m: Metric, _ s: MetricsSnapshot) -> NSImage {
+        let symbol = symbolImage(m)
+        let gap: CGFloat = 3
+        if m == .net {
+            return image(width: symbol.size.width + gap + netBlockWidth) {
+                drawSymbol(symbol)
+                drawNetBlock(s, x: symbol.size.width + gap)
+            }
+        }
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
+        let vw = width("100%", font)
+        return image(width: symbol.size.width + gap + vw) {
+            drawSymbol(symbol)
+            draw(m.valueText(s), font, x: symbol.size.width + gap, baseline: centeredBaseline(font), width: vw, align: .right)
+        }
+    }
+
+    private static func text(_ m: Metric, _ s: MetricsSnapshot) -> NSImage {
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
+        let base = centeredBaseline(font)
+        if m == .net {
+            let arrow = width("↓", font), field = width("999K", font), gap: CGFloat = 5
+            return image(width: 2 * (arrow + field) + gap) {
+                draw("↓", font, x: 0, baseline: base)
+                draw(Fmt.shortRate(s.netIn), font, x: arrow, baseline: base, width: field, align: .right)
+                draw("↑", font, x: arrow + field + gap, baseline: base)
+                draw(Fmt.shortRate(s.netOut), font, x: 2 * arrow + field + gap, baseline: base, width: field, align: .right)
+            }
+        }
+        let label = m.title + " "
+        let lw = width(label, font), vw = width("100%", font)
+        return image(width: lw + vw) {
+            draw(label, font, x: 0, baseline: base)
+            draw(m.valueText(s), font, x: lw, baseline: base, width: vw, align: .right)
+        }
+    }
+
+    /// A single vertical bar with the metric's letter under it.
+    private static func bar(_ m: Metric, _ s: MetricsSnapshot) -> NSImage {
         let barW: CGFloat = 6, labelH: CGFloat = 7, spacing: CGFloat = 1.5, barH: CGFloat = 11
         let size = NSSize(width: 9, height: labelH + spacing + barH)
         let image = NSImage(size: size, flipped: false) { _ in
@@ -139,6 +196,63 @@ struct MetricStatusLabel: View {
         }
         image.isTemplate = true
         return image
+    }
+
+    // MARK: Network block (two rows)
+
+    private static let netFont = NSFont.monospacedDigitSystemFont(ofSize: 9.5, weight: .medium)
+    private static let netArrowWidth = width("↑", netFont) + 2
+    private static let netFieldWidth = width("999 KB/s", netFont)
+    private static let netBlockWidth = netArrowWidth + netFieldWidth
+
+    private static func drawNetBlock(_ s: MetricsSnapshot, x: CGFloat) {
+        draw("↑", netFont, x: x, baseline: 12.5)
+        draw(Fmt.rate(s.netOut), netFont, x: x + netArrowWidth, baseline: 12.5, width: netFieldWidth, align: .right)
+        draw("↓", netFont, x: x, baseline: 2)
+        draw(Fmt.rate(s.netIn), netFont, x: x + netArrowWidth, baseline: 2, width: netFieldWidth, align: .right)
+    }
+
+    // MARK: Drawing helpers
+
+    private static func image(width: CGFloat, _ body: @escaping () -> Void) -> NSImage {
+        let img = NSImage(size: NSSize(width: ceil(width), height: height), flipped: false) { _ in
+            body()
+            return true
+        }
+        img.isTemplate = true
+        return img
+    }
+
+    private static func attributed(_ str: String, _ font: NSFont) -> NSAttributedString {
+        NSAttributedString(string: str, attributes: [.font: font, .foregroundColor: NSColor.black])
+    }
+
+    private static func width(_ str: String, _ font: NSFont) -> CGFloat {
+        ceil(attributed(str, font).size().width)
+    }
+
+    private static func centeredBaseline(_ font: NSFont) -> CGFloat {
+        ((height - font.capHeight) / 2).rounded()
+    }
+
+    /// Draws text with its baseline at `baseline`; right-aligns inside `width` when given.
+    private static func draw(_ str: String, _ font: NSFont, x: CGFloat, baseline: CGFloat,
+                             width: CGFloat? = nil, align: NSTextAlignment = .left) {
+        let a = attributed(str, font)
+        var px = x
+        if let width, align == .right { px = x + width - a.size().width }
+        a.draw(at: NSPoint(x: px, y: baseline + font.descender))
+    }
+
+    private static func symbolImage(_ m: Metric) -> NSImage {
+        let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
+        return NSImage(systemSymbolName: m.symbol, accessibilityDescription: m.title)?
+            .withSymbolConfiguration(config) ?? NSImage()
+    }
+
+    private static func drawSymbol(_ symbol: NSImage) {
+        let y = ((height - symbol.size.height) / 2).rounded()
+        symbol.draw(in: NSRect(x: 0, y: y, width: symbol.size.width, height: symbol.size.height))
     }
 }
 
