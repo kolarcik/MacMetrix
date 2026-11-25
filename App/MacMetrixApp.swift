@@ -161,7 +161,9 @@ struct MetricStatusLabel: View {
     var history: [MetricsSnapshot]? = nil
 
     var body: some View {
-        Image(nsImage: StatusImage.render(metric, snapshot, style, history: history))
+        // A MenuBarExtra label shows only one image, so label and chart are drawn into one.
+        Image(nsImage: history.map { StatusImage.withSparkline(metric, snapshot, style, history: $0) }
+                ?? StatusImage.render(metric, snapshot, style))
             .accessibilityLabel("\(metric.title) \(metric.valueText(snapshot))")
     }
 }
@@ -173,12 +175,6 @@ enum StatusImage {
     /// Samples shown in the mini chart (40 s at the default 1 s interval).
     static let sparklinePoints = 40
     private static let sparklineSize = NSSize(width: 34, height: 16)
-
-    static func render(_ m: Metric, _ s: MetricsSnapshot, _ style: MenuBarStyle, history: [MetricsSnapshot]?) -> NSImage {
-        let label = render(m, s, style)
-        guard let history else { return label }
-        return withSparkline(label, metric: m, history: history)
-    }
 
     static func render(_ m: Metric, _ s: MetricsSnapshot, _ style: MenuBarStyle) -> NSImage {
         switch style {
@@ -271,22 +267,33 @@ enum StatusImage {
 
     // MARK: Mini chart
 
-    /// Label followed by a small history chart, same proportions for every metric so items stay aligned.
-    private static func withSparkline(_ label: NSImage, metric m: Metric, history: [MetricsSnapshot]) -> NSImage {
+    /// Label followed by a history chart in the metric's colors. The colored chart means the image can't be a
+    /// template, so the label is tinted with `labelColor` while the image is drawn – the drawing handler runs
+    /// in the status item's appearance, so the text matches the menu bar (light or dark).
+    static func withSparkline(_ m: Metric, _ s: MetricsSnapshot, _ style: MenuBarStyle, history: [MetricsSnapshot]) -> NSImage {
+        let label = render(m, s, style)
         let gap: CGFloat = 4
-        let chart = sparklineSize
-        return image(width: label.size.width + gap + chart.width) {
-            label.draw(in: NSRect(x: 0, y: ((height - label.size.height) / 2).rounded(),
-                                  width: label.size.width, height: label.size.height))
-            drawSparkline(in: NSRect(x: label.size.width + gap, y: ((height - chart.height) / 2).rounded(),
-                                     width: chart.width, height: chart.height),
+        let size = NSSize(width: label.size.width + gap + sparklineSize.width, height: height)
+        let img = NSImage(size: size, flipped: false) { _ in
+            let labelRect = NSRect(x: 0, y: ((height - label.size.height) / 2).rounded(),
+                                   width: label.size.width, height: label.size.height)
+            label.draw(in: labelRect)
+            NSColor.labelColor.set()
+            labelRect.fill(using: .sourceAtop)
+            drawSparkline(in: NSRect(x: label.size.width + gap, y: ((height - sparklineSize.height) / 2).rounded(),
+                                     width: sparklineSize.width, height: sparklineSize.height),
                           metric: m, history: history)
+            return true
         }
+        img.isTemplate = false
+        return img
     }
 
     private static func drawSparkline(in rect: NSRect, metric m: Metric, history: [MetricsSnapshot]) {
-        // Faint frame so an idle (flat) chart is still visible.
-        NSColor.black.withAlphaComponent(0.12).setFill()
+        let color = NSColor(m.inColor)
+        let outColor = NSColor(m.outColor)
+        // Faint frame so an idle (flat) chart is still visible on light and dark menu bars.
+        NSColor.gray.withAlphaComponent(0.28).setFill()
         NSBezierPath(roundedRect: rect, xRadius: 2, yRadius: 2).fill()
 
         let primary: [Double], secondary: [Double]?
@@ -319,7 +326,7 @@ enum StatusImage {
         for (i, v) in primary.enumerated() { area.line(to: point(i, v, count: primary.count)) }
         area.line(to: NSPoint(x: inner.maxX, y: inner.minY))
         area.close()
-        NSColor.black.withAlphaComponent(0.45).setFill()
+        color.withAlphaComponent(0.45).setFill()
         area.fill()
 
         let line = NSBezierPath()
@@ -329,7 +336,7 @@ enum StatusImage {
         }
         line.lineWidth = 1
         line.lineJoinStyle = .round
-        NSColor.black.setStroke()
+        color.setStroke()
         line.stroke()
 
         // OUT / write as a separate line on top.
@@ -339,8 +346,8 @@ enum StatusImage {
                 let p = point(i, v, count: secondary.count)
                 i == 0 ? out.move(to: p) : out.line(to: p)
             }
-            out.lineWidth = 1
-            out.setLineDash([2, 1], count: 2, phase: 0)
+            out.lineWidth = 1.2
+            outColor.setStroke()
             out.stroke()
         }
     }

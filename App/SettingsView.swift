@@ -65,7 +65,7 @@ struct SettingsView: View {
                 .pickerStyle(.segmented)
                 Toggle(isOn: $showSparkline) {
                     Text("Miniatura grafu za ukazatelem")
-                    Text("Posledních \(StatusImage.sparklinePoints) měření; u sítě a disku plná plocha IN / čtení, čárkovaně OUT / zápis.")
+                    Text("Posledních \(StatusImage.sparklinePoints) měření; v barvách metrik, u sítě IN modře a OUT červeně, u disku čtení růžově a zápis fialově.")
                 }
             } header: {
                 Text("Ukazatele ve stavové liště")
