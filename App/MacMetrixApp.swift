@@ -87,6 +87,12 @@ struct MacMetrixApp: App {
         }
         .defaultSize(width: 820, height: 780)
 
+        Window("Úklid disku", id: "cleanup") {
+            CleanupView()
+                .environmentObject(store)
+        }
+        .defaultSize(width: 680, height: 640)
+
         Window("Nastavení MacMetrix", id: "settings") {
             SettingsView()
                 .environmentObject(store)

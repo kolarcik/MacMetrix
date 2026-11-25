@@ -47,6 +47,10 @@ struct MetricsSnapshot: Codable, Hashable {
     var diskWriteTotal: UInt64? = nil
     var netInTotal: UInt64? = nil
     var netOutTotal: UInt64? = nil
+    /// °C, Apple Silicon only (filled in by the app, not the widget)
+    var cpuTemp: Double? = nil
+    var cpuTempMax: Double? = nil
+    var ssdTemp: Double? = nil
 
     var memFraction: Double { memTotal > 0 ? Double(memUsed) / Double(memTotal) : 0 }
     var diskFraction: Double { diskTotal > 0 ? Double(diskUsed) / Double(diskTotal) : 0 }

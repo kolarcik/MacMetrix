@@ -5,6 +5,7 @@ struct MetricDetailView: View {
     var metric: Metric
     @EnvironmentObject var store: MonitorStore
     @StateObject private var procs: ProcessMonitor
+    @Environment(\.openWindow) private var openWindow
 
     init(metric: Metric) {
         self.metric = metric
@@ -65,7 +66,9 @@ struct MetricDetailView: View {
         switch metric {
         case .cpu:
             let cores = Double(max(s.cores.count, 1))
-            return (GaugeSpec(caption: "Uživatel", value: s.cpuUser, label: Fmt.percent(s.cpuUser), color: .blue),
+            let temp = s.cpuTemp.map { GaugeSpec(caption: "Teplota", value: $0 / 105, label: Fmt.temp($0), color: .orange) }
+                ?? GaugeSpec(caption: "Uživatel", value: s.cpuUser, label: Fmt.percent(s.cpuUser), color: .blue)
+            return (temp,
                     GaugeSpec(caption: "Load 1 min", value: (s.load.first ?? 0) / cores,
                           label: String(format: "%.2f", s.load.first ?? 0), color: .cyan))
         case .gpu:
@@ -125,6 +128,9 @@ struct MetricDetailView: View {
             } else {
                 DetailRow("Jádra", "\(s.cores.count)")
             }
+            if let t = s.cpuTemp {
+                DetailRow("Teplota (průměr / max)", "\(Fmt.temp(t)) / \(Fmt.temp(s.cpuTempMax ?? t))", dot: .orange)
+            }
             DetailRow("Spuštěno", Fmt.uptime(ProcessInfo.processInfo.systemUptime))
         case .gpu:
             DetailRow("Využití", Fmt.percent(s.gpu), dot: .purple)
@@ -147,6 +153,7 @@ struct MetricDetailView: View {
             DetailRow("Obsazeno", Fmt.gb(s.diskUsed), dot: .pink)
             DetailRow("Volno", Fmt.gb(s.diskTotal > s.diskUsed ? s.diskTotal - s.diskUsed : 0), dot: .gray.opacity(0.5))
             DetailRow("Celkem", Fmt.gb(s.diskTotal))
+            if let t = s.ssdTemp { DetailRow("Teplota SSD", Fmt.temp(t), dot: .orange) }
         case .net:
             DetailRow(s.netInViaTunnel == true ? "Stahování (VPN)" : "Stahování", Fmt.rate(s.netIn), dot: Metric.net.inColor)
             DetailRow("Odesílání", Fmt.rate(s.netOut), dot: Metric.net.outColor)
@@ -168,6 +175,16 @@ struct MetricDetailView: View {
             DetailRow("Zápis", Fmt.rate(s.diskWrite), dot: .indigo)
             DetailRow("Přečteno od startu", s.diskReadTotal.map(Fmt.bytes) ?? "–")
             DetailRow("Zapsáno od startu", s.diskWriteTotal.map(Fmt.bytes) ?? "–")
+            Button {
+                MenuBarWindows.closeAll()
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: "cleanup")
+            } label: {
+                Label("Uvolnit místo na disku…", systemImage: "sparkles")
+                    .frame(maxWidth: .infinity)
+            }
+            .controlSize(.large)
+            .padding(.top, 4)
         case .net:
             SectionHeader("Rozhraní")
             if procs.interfaces.isEmpty {
@@ -275,6 +292,8 @@ extension Array {
 }
 
 extension Fmt {
+    static func temp(_ c: Double) -> String { "\(Int(c.rounded())) °C" }
+
     /// "3.2G" style for small gauges.
     static func shortGB(_ v: UInt64) -> String {
         let g = Double(v) / 1_073_741_824

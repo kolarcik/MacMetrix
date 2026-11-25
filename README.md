@@ -4,8 +4,9 @@ Menu bar aplikace pro macOS 14+ sledující zatížení **CPU, GPU, RAM, disku a
 
 ## Co umí
 
-- **Samostatné ukazatele ve stavové liště** – CPU, GPU, RAM, Disk a Síť mají každý vlastní položku; které se zobrazí, se vybírá zaškrtávátky v ⚙︎. Vzhled: *Ikona + hodnota*, *Text* nebo *Sloupec*. Když není vybrané nic, zobrazí se jen ikona aplikace. Položky jde přeskládat přes ⌘ + tažení.
-- **Popover** po kliknutí: hodnoty + grafy za posledních 5 minut, load average, uptime.
+- **Samostatné ukazatele ve stavové liště** – CPU, GPU, RAM, Disk a Síť mají každý vlastní položku s pevnou šířkou; které se zobrazí, se vybírá v Nastavení. Vzhled: *Dvouřádkově*, *Ikona*, *Text* nebo *Sloupec*. Když není vybrané nic, zobrazí se jen ikona aplikace. Položky jde přeskládat přes ⌘ + tažení.
+- **Okno každé metriky** po kliknutí na její ikonu: ukazatele, historie, detaily a nejaktivnější procesy (CPU i s teplotou čipu, Disk s teplotou SSD).
+- **Úklid disku** – průvodce (z okna Disku) najde a smaže DerivedData, podporu zařízení, nedostupné simulátory, cache SPM/CocoaPods/NuGet/npm/Homebrew/Gradle, bin/obj a .build v projektech, staré dočasné soubory a logy. Nejdřív ukáže velikosti a nechá vybrat kategorie; mazat jde trvale nebo do Koše.
 - **Dashboard okno** – velké gauge, grafy (5 min / 1 hod) a vytížení jednotlivých jader CPU.
 - **Widgety na plochu** (malý / střední / velký) s historií za poslední hodinu.
 - **Spouštění po přihlášení** – zapne se samo při prvním spuštění (`SMAppService`), lze vypnout v ⚙︎.
@@ -14,7 +15,7 @@ Menu bar aplikace pro macOS 14+ sledující zatížení **CPU, GPU, RAM, disku a
 
 | Metrika | Zdroj | Poznámka |
 |---|---|---|
-| CPU | `host_processor_info` | celkem, user/system, po jádrech, load average |
+| CPU | `host_processor_info`, IOHID teplotní senzory | celkem, user/system, po jádrech, load average; teplota (průměr / max `PMU tdie*`, jen Apple Silicon) |
 | GPU | IOKit `IOAccelerator → PerformanceStatistics` | „Device Utilization %“ + využitá paměť GPU |
 | RAM | `host_statistics64` | „Použitá paměť“ jako v Monitoru aktivity (app + wired + komprimovaná), swap |
 | Disk | `/` resource values, IOKit `IOBlockStorageDriver` | obsazenost systémového svazku (gauge) + čtení/zápis B/s (graf) |
@@ -24,7 +25,7 @@ Gauge sítě je vztažený k 1 Gbit/s (125 MB/s).
 
 ## Widgety a jejich obnovování
 
-Aplikace každou minutu zapíše data do sdíleného App Group kontejneru a požádá WidgetKit o obnovení. **macOS ale obnovování widgetů omezuje**, takže widget nemusí být aktuální na sekundu – ukazuje čas posledního měření. Pro živá data slouží popover a dashboard. Když aplikace neběží, widget si změří hodnoty sám (bez historie).
+Aplikace v nastaveném intervalu (výchozí 10 s, v Nastavení 5 s – 1 min) zapíše data do sdíleného App Group kontejneru a požádá WidgetKit o obnovení. **macOS ale obnovování widgetů omezuje**, takže widget nemusí být aktuální na sekundu – ukazuje čas posledního měření. Pro živá data slouží popover a dashboard. Když aplikace neběží, widget si změří hodnoty sám (bez historie).
 
 Přidání: pravý klik na plochu → *Upravit widgety* → MacMetrix.
 

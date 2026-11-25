@@ -30,6 +30,7 @@ final class MonitorStore: ObservableObject {
     private let historySeconds: TimeInterval = 300
 
     private let sampler = SystemSampler()
+    private let temperatures = TemperatureSensors()
     private var timer: Timer?
     private var pending: [MetricsSnapshot] = []
     private var lastWidgetPush = Date.distantPast
@@ -56,7 +57,8 @@ final class MonitorStore: ObservableObject {
     }
 
     private func tick() {
-        let s = sampler.sample()
+        var s = sampler.sample()
+        (s.cpuTemp, s.cpuTempMax, s.ssdTemp) = temperatures.read()
         current = s
         history.append(s)
         let cutoff = s.date.addingTimeInterval(-historySeconds)
