@@ -88,7 +88,11 @@ struct MacMetrixApp: App {
         // App icon only when no metric is selected, so the app stays reachable.
         // If the user ⌘-drags it out anyway, bring the metric items back instead of leaving nothing.
         MenuBarExtra(isInserted: Binding(get: { MenuBarMetrics.decode(metricsRaw).isEmpty },
-                                         set: { if !$0 { metricsRaw = MenuBarMetrics.all } })) {
+                                         set: { inserted in
+                                             // SwiftUI also writes false when the item goes away because a metric
+                                             // got selected – only react when the selection is still empty.
+                                             if !inserted, MenuBarMetrics.decode(metricsRaw).isEmpty { metricsRaw = MenuBarMetrics.all }
+                                         })) {
             popover
         } label: {
             Image(nsImage: AppGlyph.image)

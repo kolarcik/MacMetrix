@@ -132,8 +132,14 @@ struct CleanupView: View {
     private var summary: some View {
         VStack(spacing: 14) {
             Image(systemName: "checkmark.circle.fill").font(.system(size: 52)).foregroundStyle(.green)
-            Text(model.moveToTrash ? "Přesunuto do Koše \(Fmt.bytes(model.freed))" : "Uvolněno \(Fmt.bytes(model.freed))")
-                .font(.title2.weight(.semibold))
+            if model.freed > 0 || model.trashed == 0 {
+                Text("Uvolněno \(Fmt.bytes(model.freed))").font(.title2.weight(.semibold))
+            }
+            if model.trashed > 0 {
+                Text("Přesunuto do Koše \(Fmt.bytes(model.trashed))")
+                    .font(model.freed > 0 ? .headline : .title2.weight(.semibold))
+                Text("Místo se uvolní po vysypání Koše.").font(.callout).foregroundStyle(.secondary)
+            }
             if model.failures > 0 {
                 Text("\(model.failures) položek se nepodařilo odstranit (používané nebo bez oprávnění).")
                     .font(.callout).foregroundStyle(.secondary)

@@ -83,7 +83,9 @@ final class DiskCleanupModel: ObservableObject {
     @Published var status = ""
     @Published var results: [Result] = []
     @Published var moveToTrash = false
+    /// Bytes removed for good / bytes moved to the Trash (still taking space until it's emptied).
     @Published var freed: UInt64 = 0
+    @Published var trashed: UInt64 = 0
     @Published var failures = 0
     @Published var projectsRoot: URL? {
         didSet { UserDefaults.standard.set(projectsRoot?.path, forKey: "cleanupProjectsRoot") }
@@ -129,12 +131,13 @@ final class DiskCleanupModel: ObservableObject {
         phase = .cleaning
         progress = 0
         freed = 0
+        trashed = 0
         failures = 0
         let selected = results.filter(\.selected)
         let toTrash = moveToTrash
         let total = Double(max(selected.reduce(0) { $0 + $1.items.count }, 1))
         Task.detached(priority: .userInitiated) {
-            var done = 0.0, freed: UInt64 = 0, failures = 0
+            var done = 0.0, freed: UInt64 = 0, trashed: UInt64 = 0, failures = 0
             for r in selected {
                 await MainActor.run { self.status = r.category.title }
                 if case .unavailableSimulators = r.category.source {
@@ -151,7 +154,7 @@ final class DiskCleanupModel: ObservableObject {
                         } else {
                             try FileManager.default.removeItem(at: item.url)
                         }
-                        freed += item.size
+                        if trashThis { trashed += item.size } else { freed += item.size }
                     } catch {
                         failures += 1
                     }
@@ -164,6 +167,7 @@ final class DiskCleanupModel: ObservableObject {
             }
             await MainActor.run {
                 self.freed = freed
+                self.trashed = trashed
                 self.failures = failures
                 self.progress = 1
                 self.phase = .done
@@ -177,6 +181,7 @@ final class DiskCleanupModel: ObservableObject {
         phase = .intro
         results = []
         freed = 0
+        trashed = 0
         failures = 0
     }
 

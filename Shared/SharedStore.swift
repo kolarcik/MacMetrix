@@ -31,13 +31,12 @@ enum SharedStore {
         guard let groupID, let dir = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupID) else { return }
         let url = dir.appendingPathComponent("widget-reloads.log")
         let line = "\(ISO8601DateFormatter().string(from: Date())) \(fromApp ? "app" : "self")\n"
-        if !FileManager.default.fileExists(atPath: url.path) {
-            FileManager.default.createFile(atPath: url.path, contents: nil)
-        }
-        guard let handle = try? FileHandle(forWritingTo: url) else { return }
-        defer { try? handle.close() }
-        let size = (try? handle.seekToEnd()) ?? 0
-        try? handle.write(contentsOf: Data(line.utf8))
+        let fd = Darwin.open(url.path, O_WRONLY | O_APPEND | O_CREAT, 0o644)
+        guard fd >= 0 else { return }
+        let bytes = Array(line.utf8)
+        _ = bytes.withUnsafeBytes { Darwin.write(fd, $0.baseAddress, $0.count) }
+        let size = Darwin.lseek(fd, 0, SEEK_END)
+        Darwin.close(fd)
         if size > 32_000, let text = try? String(contentsOf: url, encoding: .utf8) {
             let lines = text.split(separator: "\n").suffix(200)
             try? (lines.joined(separator: "\n") + "\n").write(to: url, atomically: true, encoding: .utf8)
@@ -80,21 +79,21 @@ enum Fmt {
     static func rate(_ bytesPerSecond: Double) -> String {
         let units = ["B/s", "KB/s", "MB/s", "GB/s"]
         let (v, i) = scaled(bytesPerSecond, units: units.count)
-        return i == 0 ? "\(Int(v)) \(units[i])" : String(format: v < 10 ? "%.1f %@" : "%.0f %@", v, units[i])
+        return i == 0 ? "\(Int(v)) \(units[i])" : String(format: v < 9.95 ? "%.1f %@" : "%.0f %@", v, units[i])
     }
 
     /// Compact rate for gauges, e.g. "1.2M", "340K"
     static func shortRate(_ bytesPerSecond: Double) -> String {
         let units = ["B", "K", "M", "G"]
         let (v, i) = scaled(bytesPerSecond, units: units.count)
-        return i == 0 ? "\(Int(v))\(units[i])" : String(format: v < 10 ? "%.1f%@" : "%.0f%@", v, units[i])
+        return i == 0 ? "\(Int(v))\(units[i])" : String(format: v < 9.95 ? "%.1f%@" : "%.0f%@", v, units[i])
     }
 
     /// Scales by 1000 until the value *as printed* is below 1000 (999.6 KB/s → "1.0 MB/s", not "1000 KB/s").
     private static func scaled(_ value: Double, units: Int) -> (Double, Int) {
         var v = max(value, 0)
         var i = 0
-        func printed(_ x: Double, _ i: Int) -> Double { i == 0 ? x.rounded(.down) : (x < 10 ? (x * 10).rounded() / 10 : x.rounded()) }
+        func printed(_ x: Double, _ i: Int) -> Double { i == 0 ? x.rounded(.down) : (x < 9.95 ? (x * 10).rounded() / 10 : x.rounded()) }
         while printed(v, i) >= 1000, i < units - 1 { v /= 1000; i += 1 }
         return (v, i)
     }
