@@ -74,6 +74,7 @@ struct MacMetrixApp: App {
     @StateObject private var store = MonitorStore()
     @AppStorage("menuBarStyle") private var style: MenuBarStyle = .stacked
     @AppStorage(MenuBarMetrics.key) private var metricsRaw = MenuBarMetrics.all
+    @AppStorage(StatusImage.sparklineKey) private var showSparkline = false
 
     var body: some Scene {
         // One independent status bar item per metric (SceneBuilder has no ForEach).
@@ -132,7 +133,8 @@ struct MacMetrixApp: App {
         MenuBarExtra(isInserted: binding(for: m)) {
             MetricDetailView(metric: m).environmentObject(store)
         } label: {
-            MetricStatusLabel(metric: m, snapshot: store.current, style: style)
+            MetricStatusLabel(metric: m, snapshot: store.current, style: style,
+                              history: showSparkline ? Array(store.history.suffix(StatusImage.sparklinePoints)) : nil)
         }
         .menuBarExtraStyle(.window)
     }
@@ -155,9 +157,11 @@ struct MetricStatusLabel: View {
     var metric: Metric
     var snapshot: MetricsSnapshot
     var style: MenuBarStyle
+    /// Recent samples for the mini chart after the label; nil = no chart.
+    var history: [MetricsSnapshot]? = nil
 
     var body: some View {
-        Image(nsImage: StatusImage.render(metric, snapshot, style))
+        Image(nsImage: StatusImage.render(metric, snapshot, style, history: history))
             .accessibilityLabel("\(metric.title) \(metric.valueText(snapshot))")
     }
 }
@@ -165,6 +169,16 @@ struct MetricStatusLabel: View {
 /// Draws status bar items with widths computed from the widest possible value.
 enum StatusImage {
     static let height: CGFloat = 22
+    static let sparklineKey = "menuBarSparkline"
+    /// Samples shown in the mini chart (40 s at the default 1 s interval).
+    static let sparklinePoints = 40
+    private static let sparklineSize = NSSize(width: 34, height: 16)
+
+    static func render(_ m: Metric, _ s: MetricsSnapshot, _ style: MenuBarStyle, history: [MetricsSnapshot]?) -> NSImage {
+        let label = render(m, s, style)
+        guard let history else { return label }
+        return withSparkline(label, metric: m, history: history)
+    }
 
     static func render(_ m: Metric, _ s: MetricsSnapshot, _ style: MenuBarStyle) -> NSImage {
         switch style {
@@ -253,6 +267,82 @@ enum StatusImage {
         }
         image.isTemplate = true
         return image
+    }
+
+    // MARK: Mini chart
+
+    /// Label followed by a small history chart, same proportions for every metric so items stay aligned.
+    private static func withSparkline(_ label: NSImage, metric m: Metric, history: [MetricsSnapshot]) -> NSImage {
+        let gap: CGFloat = 4
+        let chart = sparklineSize
+        return image(width: label.size.width + gap + chart.width) {
+            label.draw(in: NSRect(x: 0, y: ((height - label.size.height) / 2).rounded(),
+                                  width: label.size.width, height: label.size.height))
+            drawSparkline(in: NSRect(x: label.size.width + gap, y: ((height - chart.height) / 2).rounded(),
+                                     width: chart.width, height: chart.height),
+                          metric: m, history: history)
+        }
+    }
+
+    private static func drawSparkline(in rect: NSRect, metric m: Metric, history: [MetricsSnapshot]) {
+        // Faint frame so an idle (flat) chart is still visible.
+        NSColor.black.withAlphaComponent(0.12).setFill()
+        NSBezierPath(roundedRect: rect, xRadius: 2, yRadius: 2).fill()
+
+        let primary: [Double], secondary: [Double]?
+        switch m {
+        case .net:
+            primary = history.map(\.netIn)
+            secondary = history.map(\.netOut)
+        case .disk:
+            primary = history.map(\.diskRead)
+            secondary = history.map(\.diskWrite)
+        default:
+            primary = history.map { m.fraction($0) }
+            secondary = nil
+        }
+        guard primary.count > 1 else { return }
+        // Rates scale to the window's peak (at least 10 KB/s so idle noise stays flat), others are 0...1.
+        let scale = m.isRateChart ? max((primary + (secondary ?? [])).max() ?? 0, 10_000) : 1
+
+        let inner = rect.insetBy(dx: 1, dy: 1)
+        // Right-aligned: the newest sample is always at the right edge, even before the window fills up.
+        let step = inner.width / CGFloat(StatusImage.sparklinePoints - 1)
+        func point(_ i: Int, _ v: Double, count: Int) -> NSPoint {
+            let x = inner.maxX - CGFloat(count - 1 - i) * step
+            let y = inner.minY + inner.height * CGFloat(min(max(v / scale, 0), 1))
+            return NSPoint(x: x, y: y)
+        }
+
+        let area = NSBezierPath()
+        area.move(to: NSPoint(x: point(0, 0, count: primary.count).x, y: inner.minY))
+        for (i, v) in primary.enumerated() { area.line(to: point(i, v, count: primary.count)) }
+        area.line(to: NSPoint(x: inner.maxX, y: inner.minY))
+        area.close()
+        NSColor.black.withAlphaComponent(0.45).setFill()
+        area.fill()
+
+        let line = NSBezierPath()
+        for (i, v) in primary.enumerated() {
+            let p = point(i, v, count: primary.count)
+            i == 0 ? line.move(to: p) : line.line(to: p)
+        }
+        line.lineWidth = 1
+        line.lineJoinStyle = .round
+        NSColor.black.setStroke()
+        line.stroke()
+
+        // OUT / write as a separate line on top.
+        if let secondary {
+            let out = NSBezierPath()
+            for (i, v) in secondary.enumerated() {
+                let p = point(i, v, count: secondary.count)
+                i == 0 ? out.move(to: p) : out.line(to: p)
+            }
+            out.lineWidth = 1
+            out.setLineDash([2, 1], count: 2, phase: 0)
+            out.stroke()
+        }
     }
 
     // MARK: Network block (two rows)

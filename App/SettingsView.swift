@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Environment(\.openWindow) private var openWindow
     @AppStorage("menuBarStyle") private var style: MenuBarStyle = .stacked
     @AppStorage(MenuBarMetrics.key) private var metricsRaw = MenuBarMetrics.all
+    @AppStorage(StatusImage.sparklineKey) private var showSparkline = false
 
     private func metricBinding(_ m: Metric) -> Binding<Bool> {
         Binding(
@@ -62,6 +63,10 @@ struct SettingsView: View {
                     ForEach(MenuBarStyle.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
+                Toggle(isOn: $showSparkline) {
+                    Text("Miniatura grafu za ukazatelem")
+                    Text("Posledních \(StatusImage.sparklinePoints) měření; u sítě a disku plná plocha IN / čtení, čárkovaně OUT / zápis.")
+                }
             } header: {
                 Text("Ukazatele ve stavové liště")
             } footer: {

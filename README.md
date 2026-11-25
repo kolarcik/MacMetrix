@@ -5,6 +5,7 @@ Menu bar aplikace pro macOS 14+ sledující zatížení **CPU, GPU, RAM, disku a
 ## Co umí
 
 - **Samostatné ukazatele ve stavové liště** – CPU, GPU, RAM, Disk a Síť mají každý vlastní položku s pevnou šířkou; které se zobrazí, se vybírá v Nastavení. Vzhled: *Dvouřádkově*, *Ikona*, *Text* nebo *Sloupec*. Když není vybrané nic, zobrazí se jen ikona aplikace. Položky jde přeskládat přes ⌘ + tažení.
+- **Miniatura grafu** za každým ukazatelem (volitelně v Nastavení) – posledních 40 měření.
 - **Okno každé metriky** po kliknutí na její ikonu: ukazatele, historie, detaily a nejaktivnější procesy (CPU i s teplotou čipu, Disk s teplotou SSD).
 - **Úklid disku** – průvodce (z okna Disku) najde a smaže DerivedData, podporu zařízení, nedostupné simulátory, cache SPM/CocoaPods/NuGet/npm/Homebrew/Gradle, bin/obj a .build v projektech, staré dočasné soubory a logy. Nejdřív ukáže velikosti a nechá vybrat kategorie; mazat jde trvale nebo do Koše.
 - **Dashboard okno** – velké gauge, grafy (5 min / 1 hod) a vytížení jednotlivých jader CPU.
