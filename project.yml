@@ -36,7 +36,9 @@ targets:
         CFBundleDisplayName: MacMetrix
         LSUIElement: true
         AppGroupID: $(APP_GROUP_ID)
-        NSHumanReadableCopyright: ""
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSHumanReadableCopyright: "© 2026 Luděk Kolarčík"
     entitlements:
       path: App/MacMetrix.entitlements
       properties:
@@ -59,6 +61,8 @@ targets:
       properties:
         CFBundleDisplayName: MacMetrix
         AppGroupID: $(APP_GROUP_ID)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     entitlements:

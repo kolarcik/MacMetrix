@@ -45,6 +45,13 @@ struct PopoverFooter: View {
             }
             Spacer()
             Button {
+                open("about")
+            } label: {
+                Image(systemName: "info.circle")
+            }
+            .buttonStyle(.borderless)
+            .help("O aplikaci MacMetrix")
+            Button {
                 open("settings")
             } label: {
                 Image(systemName: "gearshape")

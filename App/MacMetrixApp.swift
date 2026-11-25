@@ -93,6 +93,12 @@ struct MacMetrixApp: App {
         }
         .defaultSize(width: 680, height: 640)
 
+        Window("O aplikaci MacMetrix", id: "about") {
+            AboutView()
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+
         Window("Nastavení MacMetrix", id: "settings") {
             SettingsView()
                 .environmentObject(store)

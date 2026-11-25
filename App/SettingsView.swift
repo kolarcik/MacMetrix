@@ -3,6 +3,7 @@ import SwiftUI
 /// Content of the separate "Nastavení" window.
 struct SettingsView: View {
     @EnvironmentObject var store: MonitorStore
+    @Environment(\.openWindow) private var openWindow
     @AppStorage("menuBarStyle") private var style: MenuBarStyle = .stacked
     @AppStorage(MenuBarMetrics.key) private var metricsRaw = MenuBarMetrics.all
 
@@ -68,6 +69,11 @@ struct SettingsView: View {
                      ? "Nic nevybráno – ve stavové liště bude jen ikona aplikace."
                      : "Pořadí ukazatelů změníš přetažením se stisknutým ⌘.")
                     .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section {
+                Button("O aplikaci MacMetrix…") { openWindow(id: "about") }
+                    .buttonStyle(.link)
             }
         }
         .formStyle(.grouped)
