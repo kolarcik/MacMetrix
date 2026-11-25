@@ -13,11 +13,13 @@ MacMetrix ukazuje ve stavové liště, v oknech a ve widgetech na ploše vytíž
   <img src="docs/screenshots/menubar.png" width="492" alt="Ukazatele MacMetrix ve stavové liště">
 </p>
 
-<p align="center">
-  <img src="docs/screenshots/cpu.png" width="240" alt="Okno Procesor">
-  <img src="docs/screenshots/memory.png" width="240" alt="Okno Paměť">
-  <img src="docs/screenshots/network.png" width="240" alt="Okno Síť">
-</p>
+<table align="center">
+  <tr>
+    <td valign="top"><img src="docs/screenshots/cpu.png" width="240" alt="Okno Procesor"></td>
+    <td valign="top"><img src="docs/screenshots/memory.png" width="240" alt="Okno Paměť"></td>
+    <td valign="top"><img src="docs/screenshots/network.png" width="240" alt="Okno Síť"></td>
+  </tr>
+</table>
 
 ## Funkce
 
