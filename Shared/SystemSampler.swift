@@ -34,6 +34,20 @@ struct MetricsSnapshot: Codable, Hashable {
     var diskWrite: Double
     var load: [Double]
 
+    // Details for the per-metric popovers (optional so older shared JSON still decodes).
+    var memApp: UInt64? = nil
+    var memCached: UInt64? = nil
+    var memFree: UInt64? = nil
+    /// kern.memorystatus_vm_pressure_level: 1 normal, 2 warning, 4 critical
+    var memPressure: Int? = nil
+    var gpuRenderer: Double? = nil
+    var gpuTiler: Double? = nil
+    /// Cumulative bytes since boot
+    var diskReadTotal: UInt64? = nil
+    var diskWriteTotal: UInt64? = nil
+    var netInTotal: UInt64? = nil
+    var netOutTotal: UInt64? = nil
+
     var memFraction: Double { memTotal > 0 ? Double(memUsed) / Double(memTotal) : 0 }
     var diskFraction: Double { diskTotal > 0 ? Double(diskUsed) / Double(diskTotal) : 0 }
 
@@ -112,7 +126,8 @@ final class SystemSampler {
 
         // Disk I/O
         var diskRead = 0.0, diskWrite = 0.0
-        if let io = Self.diskIOBytes() {
+        let diskIO = Self.diskIOBytes()
+        if let io = diskIO {
             let t = ProcessInfo.processInfo.systemUptime
             if let p = prevDisk, t > p.time, io.read >= p.read, io.write >= p.write {
                 diskRead = Double(io.read - p.read) / (t - p.time)
@@ -128,12 +143,24 @@ final class SystemSampler {
         var load = [Double](repeating: 0, count: 3)
         _ = getloadavg(&load, 3)
 
-        return MetricsSnapshot(
+        var snap = MetricsSnapshot(
             date: now, cpu: min(cpu, 1), cpuUser: user, cpuSystem: system, cores: cores,
             gpu: gpu.utilization, gpuMemory: gpu.memory,
             memUsed: mem.used, memTotal: mem.total, memCompressed: mem.compressed, memWired: mem.wired,
             swapUsed: mem.swap, netIn: netIn, netOut: netOut, netInViaTunnel: inboundViaTunnel,
             diskUsed: disk.used, diskTotal: disk.total, diskRead: diskRead, diskWrite: diskWrite, load: load)
+        snap.memApp = mem.app
+        snap.memCached = mem.cached
+        snap.memFree = mem.free
+        snap.memPressure = Self.memoryPressure()
+        snap.gpuRenderer = gpu.renderer
+        snap.gpuTiler = gpu.tiler
+        snap.diskReadTotal = diskIO?.read
+        snap.diskWriteTotal = diskIO?.write
+        let totals = Self.networkTotals(counters)
+        snap.netInTotal = totals.rx
+        snap.netOutTotal = totals.tx
+        return snap
     }
 
     /// Takes two samples `interval` seconds apart so CPU / network deltas are meaningful.
@@ -180,7 +207,12 @@ final class SystemSampler {
 
     // MARK: - Memory
 
-    static func memory() -> (used: UInt64, total: UInt64, compressed: UInt64, wired: UInt64, swap: UInt64) {
+    struct MemoryInfo {
+        var used: UInt64 = 0, total: UInt64 = 0, compressed: UInt64 = 0, wired: UInt64 = 0, swap: UInt64 = 0
+        var app: UInt64 = 0, cached: UInt64 = 0, free: UInt64 = 0
+    }
+
+    static func memory() -> MemoryInfo {
         let total = ProcessInfo.processInfo.physicalMemory
         var stats = vm_statistics64()
         var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64_data_t>.stride / MemoryLayout<integer_t>.stride)
@@ -193,14 +225,23 @@ final class SystemSampler {
         var swapSize = MemoryLayout<xsw_usage>.size
         if sysctlbyname("vm.swapusage", &swap, &swapSize, nil, 0) != 0 { swap = xsw_usage() }
 
-        guard kr == KERN_SUCCESS else { return (0, total, 0, 0, swap.xsu_used) }
+        guard kr == KERN_SUCCESS else { return MemoryInfo(total: total, swap: swap.xsu_used) }
         let page = UInt64(getpagesize())
         let internalPages = UInt64(stats.internal_page_count)
         let purgeable = UInt64(stats.purgeable_count)
         let app = (internalPages > purgeable ? internalPages - purgeable : 0) * page
         let wired = UInt64(stats.wire_count) * page
         let compressed = UInt64(stats.compressor_page_count) * page
-        return (min(app + wired + compressed, total), total, compressed, wired, swap.xsu_used)
+        let cached = (UInt64(stats.external_page_count) + purgeable) * page
+        let free = UInt64(stats.free_count) * page
+        return MemoryInfo(used: min(app + wired + compressed, total), total: total, compressed: compressed, wired: wired,
+                          swap: swap.xsu_used, app: app, cached: cached, free: free)
+    }
+
+    static func memoryPressure() -> Int? {
+        var level: Int32 = 0
+        var size = MemoryLayout<Int32>.size
+        return sysctlbyname("kern.memorystatus_vm_pressure_level", &level, &size, nil, 0) == 0 ? Int(level) : nil
     }
 
     // MARK: - Network
@@ -251,6 +292,34 @@ final class SystemSampler {
         return (Double(rx) / seconds, Double(tx) / seconds, inboundHidden)
     }
 
+    /// Bytes since boot over physical interfaces (plus tunnels for inbound when en* hides it).
+    static func networkTotals(_ cur: [String: InterfaceCounters]) -> (rx: UInt64, tx: UInt64) {
+        let physical = cur.keys.filter(isPhysical)
+        let inboundHidden = physical.contains { cur[$0]!.tx > 0 && cur[$0]!.rx == 0 }
+        var rx = physical.reduce(UInt64(0)) { $0 &+ cur[$1]!.rx }
+        let tx = physical.reduce(UInt64(0)) { $0 &+ cur[$1]!.tx }
+        if inboundHidden { rx = cur.keys.filter(isTunnel).reduce(rx) { $0 &+ cur[$1]!.rx } }
+        return (rx, tx)
+    }
+
+    /// IPv4 addresses of interfaces that are up (loopback excluded).
+    static func interfaceAddresses() -> [(name: String, address: String)] {
+        var result: [(String, String)] = []
+        var list: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&list) == 0, let first = list else { return [] }
+        defer { freeifaddrs(list) }
+        for p in sequence(first: first, next: { $0.pointee.ifa_next }) {
+            let ifa = p.pointee
+            guard let addr = ifa.ifa_addr, addr.pointee.sa_family == UInt8(AF_INET),
+                  ifa.ifa_flags & UInt32(IFF_UP) != 0, ifa.ifa_flags & UInt32(IFF_LOOPBACK) == 0 else { continue }
+            var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            if getnameinfo(addr, socklen_t(addr.pointee.sa_len), &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST) == 0 {
+                result.append((String(cString: ifa.ifa_name), String(cString: host)))
+            }
+        }
+        return result
+    }
+
     // MARK: - Disk
 
     /// Capacity of the startup volume. "Free" includes purgeable space, like Finder shows it.
@@ -288,15 +357,16 @@ final class SystemSampler {
     // MARK: - GPU
 
     /// Reads `PerformanceStatistics` of every IOAccelerator (works on Apple Silicon and Intel/AMD).
-    static func gpu() -> (utilization: Double?, memory: UInt64?) {
+    static func gpu() -> (utilization: Double?, memory: UInt64?, renderer: Double?, tiler: Double?) {
         var iterator: io_iterator_t = 0
         guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOAccelerator"), &iterator) == KERN_SUCCESS else {
-            return (nil, nil)
+            return (nil, nil, nil, nil)
         }
         defer { IOObjectRelease(iterator) }
 
         var utilization: Double?
         var memory: UInt64?
+        var renderer: Double?, tiler: Double?
         while true {
             let service = IOIteratorNext(iterator)
             if service == 0 { break }
@@ -309,12 +379,14 @@ final class SystemSampler {
             if let value = keys.lazy.compactMap({ (stats[$0] as? NSNumber)?.doubleValue }).first {
                 utilization = max(utilization ?? 0, min(value / 100, 1))
             }
+            if let v = (stats["Renderer Utilization %"] as? NSNumber)?.doubleValue { renderer = max(renderer ?? 0, min(v / 100, 1)) }
+            if let v = (stats["Tiler Utilization %"] as? NSNumber)?.doubleValue { tiler = max(tiler ?? 0, min(v / 100, 1)) }
             if let mem = (stats["In use system memory"] as? NSNumber)?.uint64Value
                 ?? (stats["vramUsedBytes"] as? NSNumber)?.uint64Value {
                 memory = (memory ?? 0) + mem
             }
         }
-        return (utilization, memory)
+        return (utilization, memory, renderer, tiler)
     }
 
     // MARK: - Static info
@@ -327,6 +399,19 @@ final class SystemSampler {
         sysctlbyname("machdep.cpu.brand_string", &buf, &size, nil, 0)
         return String(cString: buf)
     }
+
+    /// Performance / efficiency core counts on Apple Silicon (efficiency = 0 elsewhere).
+    /// Efficiency cores come first in host_processor_info order.
+    static let coreLevels: (performance: Int, efficiency: Int) = {
+        func get(_ name: String) -> Int {
+            var v: Int32 = 0
+            var size = MemoryLayout<Int32>.size
+            return sysctlbyname(name, &v, &size, nil, 0) == 0 ? Int(v) : 0
+        }
+        let levels = get("hw.nperflevels")
+        guard levels >= 2 else { return (ProcessInfo.processInfo.activeProcessorCount, 0) }
+        return (get("hw.perflevel0.logicalcpu"), get("hw.perflevel1.logicalcpu"))
+    }()
 
     static var hostName: String {
         Host.current().localizedName ?? ProcessInfo.processInfo.hostName

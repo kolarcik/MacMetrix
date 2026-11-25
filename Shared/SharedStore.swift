@@ -38,7 +38,11 @@ enum Fmt {
     }
 
     static func bytes(_ v: UInt64) -> String {
-        ByteCountFormatter.string(fromByteCount: Int64(v), countStyle: .memory)
+        let units = ["B", "KB", "MB", "GB", "TB", "PB"]
+        var d = Double(v)
+        var i = 0
+        while d >= 1024, i < units.count - 1 { d /= 1024; i += 1 }
+        return i == 0 ? "\(v) B" : String(format: d < 10 ? "%.2f %@" : d < 100 ? "%.1f %@" : "%.0f %@", d, units[i])
     }
 
     static func gb(_ v: UInt64) -> String {

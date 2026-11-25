@@ -73,7 +73,7 @@ struct MacMetrixApp: App {
 
     private func metricItem(_ m: Metric) -> some Scene {
         MenuBarExtra(isInserted: binding(for: m)) {
-            popover
+            MetricDetailView(metric: m).environmentObject(store)
         } label: {
             MetricStatusLabel(metric: m, snapshot: store.current, style: style)
         }

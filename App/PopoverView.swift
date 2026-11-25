@@ -1,22 +1,8 @@
 import SwiftUI
 
-/// Content of the status bar popover.
+/// Overview popover (shown from the app icon when no metric has its own status bar item).
 struct PopoverView: View {
     @EnvironmentObject var store: MonitorStore
-    @Environment(\.openWindow) private var openWindow
-    @AppStorage("menuBarStyle") private var style: MenuBarStyle = .stacked
-    @State private var showSettings = false
-    @AppStorage(MenuBarMetrics.key) private var metricsRaw = MenuBarMetrics.all
-
-    private func metricBinding(_ m: Metric) -> Binding<Bool> {
-        Binding(
-            get: { MenuBarMetrics.decode(metricsRaw).contains(m) },
-            set: { on in
-                var list = MenuBarMetrics.decode(metricsRaw).filter { $0 != m }
-                if on { list.append(m) }
-                metricsRaw = MenuBarMetrics.encode(Metric.allCases.filter(list.contains))
-            })
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -25,7 +11,7 @@ struct PopoverView: View {
                 MetricRow(metric: m, snapshot: store.current, history: store.history)
             }
             Divider()
-            footer
+            PopoverFooter()
         }
         .padding(12)
         .frame(width: 340)
@@ -44,8 +30,27 @@ struct PopoverView: View {
             }
         }
     }
+}
 
-    private var footer: some View {
+/// Dashboard / settings / quit row shared by every popover, with the inline settings panel.
+struct PopoverFooter: View {
+    @EnvironmentObject var store: MonitorStore
+    @Environment(\.openWindow) private var openWindow
+    @AppStorage("menuBarStyle") private var style: MenuBarStyle = .stacked
+    @State private var showSettings = false
+    @AppStorage(MenuBarMetrics.key) private var metricsRaw = MenuBarMetrics.all
+
+    private func metricBinding(_ m: Metric) -> Binding<Bool> {
+        Binding(
+            get: { MenuBarMetrics.decode(metricsRaw).contains(m) },
+            set: { on in
+                var list = MenuBarMetrics.decode(metricsRaw).filter { $0 != m }
+                if on { list.append(m) }
+                metricsRaw = MenuBarMetrics.encode(Metric.allCases.filter(list.contains))
+            })
+    }
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Button {
