@@ -139,11 +139,14 @@ struct MacMetrixApp: App {
         .menuBarExtraStyle(.window)
     }
 
-    /// Also reacts when the user ⌘-drags an item out of the menu bar.
+    /// Settings are the source of truth. A removal coming from the menu bar is only stored when the user
+    /// is ⌘-dragging the item out; macOS also hides items on its own (no room, relaunch) and that must not
+    /// silently uncheck the metric in Settings.
     private func binding(for m: Metric) -> Binding<Bool> {
         Binding(
             get: { MenuBarMetrics.decode(metricsRaw).contains(m) },
             set: { on in
+                if !on && !NSEvent.modifierFlags.contains(.command) { return }
                 var list = MenuBarMetrics.decode(metricsRaw).filter { $0 != m }
                 if on { list.append(m) }
                 metricsRaw = MenuBarMetrics.encode(Metric.allCases.filter(list.contains))
