@@ -33,7 +33,14 @@ struct SettingsView: View {
                     Text("5 s").tag(5.0)
                 }
                 .pickerStyle(.segmented)
-                TimelineView(.periodic(from: .now, by: 15)) { _ in
+                Picker("Obnovení widgetu", selection: $store.widgetInterval) {
+                    Text("5 s").tag(5.0)
+                    Text("10 s").tag(10.0)
+                    Text("30 s").tag(30.0)
+                    Text("1 min").tag(60.0)
+                }
+                .pickerStyle(.segmented)
+                TimelineView(.periodic(from: .now, by: 5)) { _ in
                     LabeledContent("Widget naposledy obnoven") {
                         if let d = SharedStore.lastWidgetReload() {
                             Text(d, format: .dateTime.hour().minute().second())

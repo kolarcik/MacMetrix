@@ -20,6 +20,11 @@ final class MonitorStore: ObservableObject {
         }
     }
 
+    /// How often the widget gets fresh data (seconds).
+    @Published var widgetInterval: TimeInterval {
+        didSet { UserDefaults.standard.set(widgetInterval, forKey: "widgetInterval") }
+    }
+
     let hostName = SystemSampler.hostName
     let chipName = SystemSampler.chipName
     private let historySeconds: TimeInterval = 300
@@ -32,6 +37,8 @@ final class MonitorStore: ObservableObject {
     init() {
         let saved = UserDefaults.standard.double(forKey: "sampleInterval")
         sampleInterval = saved > 0 ? saved : 1
+        let savedWidget = UserDefaults.standard.double(forKey: "widgetInterval")
+        widgetInterval = savedWidget > 0 ? savedWidget : 10
         minuteHistory = SharedStore.read()?.history.filter { $0.date > Date().addingTimeInterval(-3600) } ?? []
         _ = sampler.sample() // prime CPU / network counters
         enableLaunchAtLoginOnFirstRun()
@@ -62,9 +69,9 @@ final class MonitorStore: ObservableObject {
             pending.removeAll()
         }
 
-        // Hand data over to the widget: shortly after start, then once a minute.
+        // Hand data over to the widget: shortly after start, then every `widgetInterval`.
         let sinceLast = s.date.timeIntervalSince(lastWidgetPush)
-        if sinceLast >= 60 || (lastWidgetPush == .distantPast && history.count >= 3) {
+        if sinceLast >= widgetInterval - 0.5 || (lastWidgetPush == .distantPast && history.count >= 3) {
             lastWidgetPush = s.date
             SharedStore.write(SharedState(host: hostName, latest: s, history: minuteHistory))
             WidgetCenter.shared.reloadAllTimelines()
