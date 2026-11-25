@@ -32,7 +32,7 @@ final class ProcessMonitor: ObservableObject {
     var isSupported: Bool { metric != .gpu }
 
     func start() {
-        guard timer == nil else { return }
+        guard isSupported, timer == nil else { return }
         poll()
         let t = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.poll() }
@@ -157,14 +157,16 @@ final class ProcessMonitor: ObservableObject {
 /// App icon for a process (falls back to a generic executable icon).
 @MainActor
 enum ProcessIcon {
-    private static var cache: [Int32: NSImage] = [:]
+    /// Keyed by pid + name: pids get reused by unrelated processes.
+    private static var cache: [String: NSImage] = [:]
     private static let generic: NSImage = NSWorkspace.shared.icon(for: .unixExecutable)
 
-    static func image(_ pid: Int32) -> NSImage {
-        if let img = cache[pid] { return img }
+    static func image(_ pid: Int32, name: String) -> NSImage {
+        let key = "\(pid)|\(name)"
+        if let img = cache[key] { return img }
         let img = NSRunningApplication(processIdentifier: pid)?.icon ?? generic
         if cache.count > 500 { cache.removeAll() }
-        cache[pid] = img
+        cache[key] = img
         return img
     }
 }

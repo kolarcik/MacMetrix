@@ -34,7 +34,7 @@ struct CleanupView: View {
     }
 
     private var confirmTitle: String {
-        "Uklidit \(Fmt.bytes(model.selectedSize)) ve \(model.results.filter(\.selected).count) kategoriích?"
+        "Uklidit \(Fmt.bytes(model.selectedSize))? Vybrané kategorie: \(model.results.filter(\.selected).count)"
     }
 
     private var freeSpace: UInt64 { store.current.diskTotal > store.current.diskUsed ? store.current.diskTotal - store.current.diskUsed : 0 }

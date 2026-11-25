@@ -20,19 +20,22 @@ struct MetricsProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<MetricsEntry>) -> Void) {
-        let entry = makeEntry()
-        SharedStore.noteWidgetReload(fromApp: Date().timeIntervalSince(entry.snapshot.date) < 180)
+        let (entry, fromApp) = makeEntryWithSource()
+        SharedStore.noteWidgetReload(fromApp: fromApp)
         // The app pushes a reload every minute; this is the fallback when it isn't running.
         completion(Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(60))))
     }
 
     /// Prefers fresh data from the app; otherwise measures on its own.
-    private func makeEntry() -> MetricsEntry {
-        if let state = SharedStore.read(), Date().timeIntervalSince(state.latest.date) < 180 {
-            return MetricsEntry(date: state.latest.date, host: state.host, snapshot: state.latest, history: state.history)
+    private func makeEntry() -> MetricsEntry { makeEntryWithSource().entry }
+
+    private func makeEntryWithSource() -> (entry: MetricsEntry, fromApp: Bool) {
+        let state = SharedStore.read()
+        if let state, Date().timeIntervalSince(state.latest.date) < 180 {
+            return (MetricsEntry(date: state.latest.date, host: state.host, snapshot: state.latest, history: state.history), true)
         }
         let s = SystemSampler.oneShot(interval: 0.5)
-        return MetricsEntry(date: s.date, host: SystemSampler.hostName, snapshot: s, history: SharedStore.read()?.history ?? [])
+        return (MetricsEntry(date: s.date, host: SystemSampler.hostName, snapshot: s, history: state?.history ?? []), false)
     }
 }
 

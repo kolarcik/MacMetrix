@@ -234,7 +234,7 @@ struct MetricDetailView: View {
             }
             ForEach(procs.top) { p in
                 HStack(spacing: 6) {
-                    Image(nsImage: ProcessIcon.image(p.pid))
+                    Image(nsImage: ProcessIcon.image(p.pid, name: p.name))
                         .resizable()
                         .frame(width: 14, height: 14)
                     Text(p.name).lineLimit(1).truncationMode(.middle)

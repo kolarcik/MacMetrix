@@ -36,7 +36,7 @@ struct CleanupCategory: Identifiable {
               symbol: "eye", source: .contents(["~/Library/Developer/Xcode/UserData/Previews"]), selectedByDefault: true),
         .init(id: "simcaches", title: "Simulátory – cache", detail: "Dočasná data CoreSimulatoru.",
               symbol: "ipad.and.iphone", source: .contents(["~/Library/Developer/CoreSimulator/Caches"]), selectedByDefault: true),
-        .init(id: "simunavailable", title: "Nedostupné simulátory", detail: "Simulátory pro verze iOS, které už nejsou nainstalované.",
+        .init(id: "simunavailable", title: "Nedostupné simulátory", detail: "Simulátory pro verze iOS, které už nejsou nainstalované. Mažou se vždy trvale.",
               symbol: "xmark.app", source: .unavailableSimulators, selectedByDefault: true),
         .init(id: "spm", title: "Swift Package Manager", detail: "Stažené balíčky a repozitáře SPM.",
               symbol: "shippingbox", source: .contents(["~/Library/Caches/org.swift.swiftpm"]), selectedByDefault: true),
@@ -61,7 +61,7 @@ struct CleanupCategory: Identifiable {
               symbol: "clock.arrow.circlepath", source: .olderThan([NSTemporaryDirectory()], days: 3), selectedByDefault: true),
         .init(id: "logs", title: "Logy", detail: "Logy aplikací a hlášení o pádech starší než 7 dní.",
               symbol: "doc.text", source: .olderThan(["~/Library/Logs"], days: 7), selectedByDefault: true),
-        .init(id: "trash", title: "Koš", detail: "Obsah Koše.",
+        .init(id: "trash", title: "Koš", detail: "Obsah Koše. Maže se vždy trvale.",
               symbol: "trash", source: .contents(["~/.Trash"]), selectedByDefault: false),
     ]
 }
@@ -142,9 +142,11 @@ final class DiskCleanupModel: ObservableObject {
                     done += Double(r.items.count)
                     continue
                 }
+                // Items already in the Trash can only be removed for good.
+                let trashThis = toTrash && r.category.id != "trash"
                 for item in r.items {
                     do {
-                        if toTrash {
+                        if trashThis {
                             try FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
                         } else {
                             try FileManager.default.removeItem(at: item.url)
@@ -205,10 +207,11 @@ final class DiskCleanupModel: ObservableObject {
         case .olderThan(let paths, let days):
             let cutoff = Date().addingTimeInterval(-Double(days) * 86400)
             return paths.flatMap { p -> [(url: URL, size: UInt64)] in
-                let children = (try? fm.contentsOfDirectory(at: expand(p), includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
+                let children = (try? fm.contentsOfDirectory(at: expand(p), includingPropertiesForKeys: nil)) ?? []
                 return children.compactMap { url in
-                    let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantFuture
-                    return date < cutoff ? (url, allocatedSize(url)) : nil
+                    // A directory's own mtime only changes with its direct entries, so look at everything inside.
+                    guard let newest = newestModification(url), newest < cutoff else { return nil }
+                    return (url, allocatedSize(url))
                 }
             }
 
@@ -258,6 +261,26 @@ final class DiskCleanupModel: ObservableObject {
             }
         }
         return result
+    }
+
+    /// Newest modification date of an item and everything inside it.
+    /// nil when it contains a socket / pipe (likely used by a running process) or can't be read.
+    nonisolated private static func newestModification(_ url: URL) -> Date? {
+        let keys: Set<URLResourceKey> = [.contentModificationDateKey, .fileResourceTypeKey]
+        func check(_ u: URL, _ newest: inout Date) -> Bool {
+            guard let v = try? u.resourceValues(forKeys: keys) else { return false }
+            if v.fileResourceType == .socket || v.fileResourceType == .namedPipe { return false }
+            if let d = v.contentModificationDate, d > newest { newest = d }
+            return true
+        }
+        var newest = Date.distantPast
+        guard check(url, &newest) else { return nil }
+        guard let e = FileManager.default.enumerator(at: url, includingPropertiesForKeys: Array(keys), options: [],
+                                                     errorHandler: { _, _ in true }) else { return newest }
+        for case let f as URL in e {
+            guard check(f, &newest) else { return nil }
+        }
+        return newest
     }
 
     nonisolated private static func allocatedSize(_ url: URL) -> UInt64 {
