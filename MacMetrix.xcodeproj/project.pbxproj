@@ -9,7 +9,9 @@
 /* Begin PBXBuildFile section */
 		0962B5398A1276925BBCFDF7 /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BD9BD0CE505FFEE77BF10EF /* PopoverView.swift */; };
 		218EAD16D63528D3206A1DFA /* MacMetrixWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFA564C84568B3235BB6CE8 /* MacMetrixWidget.swift */; };
+		30ED1CEFBEDCFE87E22A5D93 /* DemoMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BA04CD61933CDC23429C51F /* DemoMode.swift */; };
 		36A238276526CA243489545F /* CreatorLogo-dark.png in Resources */ = {isa = PBXBuildFile; fileRef = E6F2C67DEFEBBDCE938F3E54 /* CreatorLogo-dark.png */; };
+		37BB6F758E3886EBA1A0FD0E /* DemoMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BA04CD61933CDC23429C51F /* DemoMode.swift */; };
 		399E2A51A786B2EF56A3378C /* DiskCleanup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3816B23FB75B2B478874CE4F /* DiskCleanup.swift */; };
 		3E394541D3ED1EF40890A2D9 /* MetricViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2965447E6B504781A65A7049 /* MetricViews.swift */; };
 		4E478CB7C801ED95AFBCD6A6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F60B825524C59FFE964B2A /* SettingsView.swift */; };
@@ -68,6 +70,7 @@
 		49C10511A5288CEC27F5CE3A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4A0A31939BB15044A41F2748 /* SystemSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSampler.swift; sourceTree = "<group>"; };
 		50F60B825524C59FFE964B2A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		5BA04CD61933CDC23429C51F /* DemoMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoMode.swift; sourceTree = "<group>"; };
 		7BA535540A605EF76A9B4A16 /* MacMetrixWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MacMetrixWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7F22A3F2F63994A347A54195 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1D168F9BF1290D357E45167 /* MacMetrix.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacMetrix.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -96,6 +99,7 @@
 		B5040A92C0E476FF715F4FCD /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				5BA04CD61933CDC23429C51F /* DemoMode.swift */,
 				2965447E6B504781A65A7049 /* MetricViews.swift */,
 				B17DC8FED32A30D493F1D080 /* SharedStore.swift */,
 				4A0A31939BB15044A41F2748 /* SystemSampler.swift */,
@@ -245,6 +249,7 @@
 				A400D9E0B7A350CC317169CD /* AboutView.swift in Sources */,
 				A67A294B455B0B101ED6A9BE /* CleanupView.swift in Sources */,
 				7CB86670AF4C9A4C4C594341 /* DashboardView.swift in Sources */,
+				37BB6F758E3886EBA1A0FD0E /* DemoMode.swift in Sources */,
 				399E2A51A786B2EF56A3378C /* DiskCleanup.swift in Sources */,
 				5E34924069F87B75FBBE54E0 /* MacMetrixApp.swift in Sources */,
 				F1E14790B2F880C346043EC1 /* MetricDetailView.swift in Sources */,
@@ -263,6 +268,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				30ED1CEFBEDCFE87E22A5D93 /* DemoMode.swift in Sources */,
 				218EAD16D63528D3206A1DFA /* MacMetrixWidget.swift in Sources */,
 				3E394541D3ED1EF40890A2D9 /* MetricViews.swift in Sources */,
 				D00D7E4762BBFD64B2102537 /* SharedStore.swift in Sources */,

@@ -78,7 +78,13 @@ final class ProcessMonitor: ObservableObject {
                     return a + b > 0 ? ProcessUsage(pid: pid, name: names[pid] ?? Self.name(pid), value: a, secondary: b) : nil
                 }
             }
-            let sorted = Array(result.sorted { $0.value + $0.secondary > $1.value + $1.secondary }.prefix(Self.limit))
+            var sorted = Array(result.sorted { $0.value + $0.secondary > $1.value + $1.secondary }.prefix(Self.limit))
+            if DemoMode.isOn {
+                let names = DemoMode.processNames(cpu: metric == .cpu, ram: metric == .ram, net: metric == .net)
+                sorted = sorted.enumerated().map { i, p in
+                    ProcessUsage(pid: Int32(-1 - i), name: names[i % names.count], value: p.value, secondary: p.secondary)
+                }
+            }
             DispatchQueue.main.async { [weak self] in
                 guard let self, self.timer != nil else { return }
                 self.top = sorted
@@ -165,7 +171,7 @@ enum ProcessIcon {
     static func image(_ pid: Int32, name: String) -> NSImage {
         let key = "\(pid)|\(name)"
         if let img = cache[key] { return img }
-        let img = NSRunningApplication(processIdentifier: pid)?.icon ?? generic
+        let img = (pid < 0 ? DemoMode.icon(for: name) : NSRunningApplication(processIdentifier: pid)?.icon) ?? generic
         if cache.count > 500 { cache.removeAll() }
         cache[key] = img
         return img

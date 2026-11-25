@@ -7,8 +7,17 @@
 <p align="center">Výkon vašich Maců na první pohled.</p>
 
 MacMetrix ukazuje ve stavové liště, v oknech a ve widgetech na ploše vytížení
-**CPU, GPU, paměti, disku a sítě**. Vznikl pro Mac mini build servery, na které se
-chodí přes VNC, ale hodí se na každý Mac.
+**CPU, GPU, paměti, disku a sítě**.
+
+<p align="center">
+  <img src="docs/screenshots/menubar.png" width="492" alt="Ukazatele MacMetrix ve stavové liště">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/cpu.png" width="240" alt="Okno Procesor">
+  <img src="docs/screenshots/memory.png" width="240" alt="Okno Paměť">
+  <img src="docs/screenshots/network.png" width="240" alt="Okno Síť">
+</p>
 
 ## Funkce
 
@@ -25,6 +34,25 @@ chodí přes VNC, ale hodí se na každý Mac.
 - **Dashboard** – velké ukazatele, grafy za 5 minut a hodinu a vytížení jednotlivých jader CPU.
 - **Widgety na plochu** (malý / střední / velký) s historií za poslední hodinu.
 - **Spouštění po přihlášení**, okno O aplikaci, Nastavení v samostatném okně.
+
+## Snímky obrazovky
+
+**Dashboard** – všechny metriky na jednom místě, grafy za 5 minut nebo hodinu a vytížení jader CPU.
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+<table>
+  <tr>
+    <th>Okno Disku</th>
+    <th>Úklid disku</th>
+    <th>Nastavení</th>
+  </tr>
+  <tr>
+    <td valign="top"><img src="docs/screenshots/disk.png" width="240" alt="Okno Disk"></td>
+    <td valign="top"><img src="docs/screenshots/cleanup.png" width="340" alt="Průvodce úklidem disku"></td>
+    <td valign="top"><img src="docs/screenshots/settings.png" width="240" alt="Nastavení"></td>
+  </tr>
+</table>
 
 ## Požadavky
 
@@ -45,18 +73,18 @@ Při prvním spuštění se MacMetrix zaregistruje jako položka při přihláš
 zobrazí notifikaci. Vypnout to jde v Nastavení aplikace nebo v
 *Nastavení systému → Obecné → Položky při přihlášení*.
 
-## Instalace na Mac mini (build servery)
+## Instalace přes ZIP (vzdálené Macy)
 
-Pro hromadnou instalaci přes `scp` / SSH je k dispozici ZIP s instalačním skriptem:
+Pro instalaci na vzdálené Macy přes `scp` / SSH je k dispozici ZIP s instalačním skriptem:
 
 1. Sestavte balíček `./scripts/release.sh` (viz níže) a zkopírujte `dist/MacMetrix.zip`
    a `dist/install.sh` na stroj.
-2. Spusťte **pod uživatelem, který je přihlášený v GUI / přes VNC**:
+2. Spusťte **pod uživatelem, který je na Macu přihlášený v GUI** (třeba přes Sdílení obrazovky):
    ```bash
    ./install.sh MacMetrix.zip
    ```
    Skript aplikaci nainstaluje do složky Aplikace, ukončí starou verzi i její widget a spustí novou.
-3. Aby aplikace běžela hned po restartu serveru, musí mít Mac mini zapnuté
+3. Aby aplikace běžela hned po restartu, musí mít Mac zapnuté
    **automatické přihlášení** (*Nastavení systému → Uživatelé a skupiny → Automaticky
    přihlásit*) – položka při přihlášení se spouští až po přihlášení uživatele.
 
@@ -135,7 +163,7 @@ Widget/    WidgetKit extension
 Shared/    měření metrik, sdílený stav, společné SwiftUI komponenty (ukazatele, grafy)
 scripts/
 ├── make-dmg.sh    – instalační DMG pro distribuci
-├── release.sh     – ZIP pro instalaci na build servery
+├── release.sh     – ZIP pro instalaci na vzdálené Macy
 ├── install.sh     – instalace ZIPu na stroji
 └── make-icon.swift – generátor ikony aplikace
 project.yml        – definice projektu pro XcodeGen
@@ -165,10 +193,19 @@ Aby šla aplikace stažená z internetu otevřít bez varování, musí být not
 
 Skript DMG odešle k notarizaci, připojí k němu lístek a ověří ho Gatekeeperem.
 
-### Balíček pro build servery
+### Balíček pro vzdálené Macy
 
 ```bash
 NOTARY_PROFILE=<profil> ./scripts/release.sh
 ```
 
-Vytvoří `dist/MacMetrix.zip` a `dist/install.sh` (viz [Instalace na Mac mini](#instalace-na-mac-mini-build-servery)).
+Vytvoří `dist/MacMetrix.zip` a `dist/install.sh` (viz [Instalace přes ZIP](#instalace-přes-zip-vzdálené-macy)).
+
+### Snímky obrazovky
+
+Snímky v `docs/screenshots` jsou pořízené v ukázkovém režimu, který místo názvu Macu,
+IP adres a názvů procesů ukazuje obecné údaje (hodnoty měření zůstávají skutečné):
+
+```bash
+open /Applications/MacMetrix.app --args -demoMode YES
+```

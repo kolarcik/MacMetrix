@@ -308,6 +308,7 @@ final class SystemSampler {
 
     /// IPv4 addresses of interfaces that are up (loopback excluded).
     static func interfaceAddresses() -> [(name: String, address: String)] {
+        if DemoMode.isOn { return DemoMode.interfaces }
         var result: [(String, String)] = []
         var list: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&list) == 0, let first = list else { return [] }
@@ -418,6 +419,7 @@ final class SystemSampler {
     }()
 
     static var hostName: String {
-        Host.current().localizedName ?? ProcessInfo.processInfo.hostName
+        if DemoMode.isOn { return DemoMode.hostName }
+        return Host.current().localizedName ?? ProcessInfo.processInfo.hostName
     }
 }
