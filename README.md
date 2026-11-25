@@ -18,7 +18,7 @@ Menu bar aplikace pro macOS 14+ sledující zatížení **CPU, GPU, RAM, disku a
 | GPU | IOKit `IOAccelerator → PerformanceStatistics` | „Device Utilization %“ + využitá paměť GPU |
 | RAM | `host_statistics64` | „Použitá paměť“ jako v Monitoru aktivity (app + wired + komprimovaná), swap |
 | Disk | `/` resource values, IOKit `IOBlockStorageDriver` | obsazenost systémového svazku (gauge) + čtení/zápis B/s (graf) |
-| Síť | `sysctl NET_RT_IFLIST2` (64bit čítače) | jen rozhraní `en*` – loopback, VPN a bridge VM (např. tart) se nepočítají dvakrát |
+| Síť | `sysctl IFMIB_IFDATA` (64bit čítače) | zvlášť **IN ↓ / OUT ↑**; počítají se jen rozhraní `en*`, takže loopback, VPN a bridge VM (např. tart) se nezapočítají dvakrát. Když systém na `en*` příchozí bajty nehlásí (stává se s VPN / síťovými rozšířeními), bere se IN z VPN tunelů a v legendě je „(VPN)“. |
 
 Gauge sítě je vztažený k 1 Gbit/s (125 MB/s).
 

@@ -32,7 +32,7 @@ struct DashboardView: View {
                 ForEach(Metric.allCases) { m in
                     VStack(spacing: 6) {
                         RingGauge(value: m.fraction(store.current), color: m.color,
-                                  label: m.valueText(store.current), lineWidth: 9)
+                                  label: m.ringLabel(store.current), lineWidth: 9)
                             .frame(width: 92, height: 92)
                         Label(m.title, systemImage: m.symbol).font(.headline)
                     }
@@ -47,7 +47,7 @@ struct DashboardView: View {
                 }
                 GridRow {
                     chartCard(.ram, subtitle: "\(Fmt.gb(store.current.memUsed)) / \(Fmt.gb(store.current.memTotal)) · komprim. \(Fmt.gb(store.current.memCompressed)) · swap \(Fmt.gb(store.current.swapUsed))")
-                    chartCard(.net, subtitle: "↓ \(Fmt.rate(store.current.netIn))   ↑ \(Fmt.rate(store.current.netOut))")
+                    chartCard(.net, subtitle: "")
                 }
                 GridRow {
                     chartCard(.disk, subtitle: "\(Fmt.gb(store.current.diskUsed)) / \(Fmt.gb(store.current.diskTotal)) · čtení \(Fmt.rate(store.current.diskRead)) · zápis \(Fmt.rate(store.current.diskWrite))")
@@ -80,7 +80,11 @@ struct DashboardView: View {
             HStack {
                 Label(m.title, systemImage: m.symbol).font(.headline).foregroundStyle(m.color)
                 Spacer()
-                Text(subtitle).font(.caption).foregroundStyle(.secondary).monospacedDigit().lineLimit(1)
+                if m == .net {
+                    InOutLegend(metric: m, snapshot: store.current, font: .callout)
+                } else {
+                    Text(subtitle).font(.caption).foregroundStyle(.secondary).monospacedDigit().lineLimit(1)
+                }
             }
             Sparkline(history: data, metric: m, showAxis: true)
         }

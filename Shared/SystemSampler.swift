@@ -24,6 +24,8 @@ struct MetricsSnapshot: Codable, Hashable {
     /// Bytes per second over physical interfaces (en*)
     var netIn: Double
     var netOut: Double
+    /// True when the system hides inbound bytes on en* and IN is measured on VPN tunnels instead.
+    var netInViaTunnel: Bool? = nil
     /// Root volume capacity (bytes)
     var diskUsed: UInt64
     var diskTotal: UInt64
@@ -38,7 +40,7 @@ struct MetricsSnapshot: Codable, Hashable {
     static let empty = MetricsSnapshot(
         date: .distantPast, cpu: 0, cpuUser: 0, cpuSystem: 0, cores: [], gpu: nil, gpuMemory: nil,
         memUsed: 0, memTotal: ProcessInfo.processInfo.physicalMemory, memCompressed: 0, memWired: 0,
-        swapUsed: 0, netIn: 0, netOut: 0, diskUsed: 0, diskTotal: 0, diskRead: 0, diskWrite: 0, load: [0, 0, 0])
+        swapUsed: 0, netIn: 0, netOut: 0, netInViaTunnel: nil, diskUsed: 0, diskTotal: 0, diskRead: 0, diskWrite: 0, load: [0, 0, 0])
 
     /// Average of several snapshots (used for per-minute history).
     static func average(_ items: [MetricsSnapshot]) -> MetricsSnapshot? {
@@ -69,7 +71,7 @@ struct MetricsSnapshot: Codable, Hashable {
 /// computed as a difference against the previous call to `sample()`.
 final class SystemSampler {
     private var prevTicks: [CPUTicks]?
-    private var prevNet: (rx: UInt64, tx: UInt64, time: TimeInterval)?
+    private var prevNet: (counters: [String: InterfaceCounters], time: TimeInterval)?
     private var prevDisk: (read: UInt64, write: UInt64, time: TimeInterval)?
 
     init() {}
@@ -100,15 +102,13 @@ final class SystemSampler {
         }
 
         // Network
-        var netIn = 0.0, netOut = 0.0
-        if let net = Self.networkBytes() {
-            let t = ProcessInfo.processInfo.systemUptime
-            if let p = prevNet, t > p.time, net.rx >= p.rx, net.tx >= p.tx {
-                netIn = Double(net.rx - p.rx) / (t - p.time)
-                netOut = Double(net.tx - p.tx) / (t - p.time)
-            }
-            prevNet = (net.rx, net.tx, t)
+        var netIn = 0.0, netOut = 0.0, inboundViaTunnel = false
+        let counters = Self.interfaceCounters()
+        let netTime = ProcessInfo.processInfo.systemUptime
+        if let p = prevNet {
+            (netIn, netOut, inboundViaTunnel) = Self.networkRates(prev: p.counters, cur: counters, seconds: netTime - p.time)
         }
+        prevNet = (counters, netTime)
 
         // Disk I/O
         var diskRead = 0.0, diskWrite = 0.0
@@ -132,7 +132,7 @@ final class SystemSampler {
             date: now, cpu: min(cpu, 1), cpuUser: user, cpuSystem: system, cores: cores,
             gpu: gpu.utilization, gpuMemory: gpu.memory,
             memUsed: mem.used, memTotal: mem.total, memCompressed: mem.compressed, memWired: mem.wired,
-            swapUsed: mem.swap, netIn: netIn, netOut: netOut,
+            swapUsed: mem.swap, netIn: netIn, netOut: netOut, netInViaTunnel: inboundViaTunnel,
             diskUsed: disk.used, diskTotal: disk.total, diskRead: diskRead, diskWrite: diskWrite, load: load)
     }
 
@@ -205,38 +205,50 @@ final class SystemSampler {
 
     // MARK: - Network
 
-    /// Sums 64-bit byte counters of physical interfaces (en*). Loopback, VPN tunnels
-    /// and VM bridges are skipped so traffic is not counted twice.
-    static func networkBytes() -> (rx: UInt64, tx: UInt64)? {
-        var mib: [Int32] = [CTL_NET, PF_ROUTE, 0, 0, NET_RT_IFLIST2, 0]
-        var len = 0
-        guard sysctl(&mib, u_int(mib.count), nil, &len, nil, 0) == 0, len > 0 else { return nil }
-        var buffer = [UInt8](repeating: 0, count: len)
-        guard sysctl(&mib, u_int(mib.count), &buffer, &len, nil, 0) == 0 else { return nil }
+    struct InterfaceCounters { var rx: UInt64; var tx: UInt64 }
 
-        var rx: UInt64 = 0, tx: UInt64 = 0
-        buffer.withUnsafeBytes { raw in
-            var offset = 0
-            let headerSize = MemoryLayout<if_msghdr>.size
-            while offset + headerSize <= len {
-                let hdr = raw.loadUnaligned(fromByteOffset: offset, as: if_msghdr.self)
-                let msgLen = Int(hdr.ifm_msglen)
-                guard msgLen > 0 else { break }
-                if Int32(hdr.ifm_type) == RTM_IFINFO2, offset + MemoryLayout<if_msghdr2>.size <= len {
-                    let h2 = raw.loadUnaligned(fromByteOffset: offset, as: if_msghdr2.self)
-                    var nameBuf = [CChar](repeating: 0, count: Int(IF_NAMESIZE))
-                    if if_indextoname(UInt32(h2.ifm_index), &nameBuf) != nil {
-                        let name = String(cString: nameBuf)
-                        if name.hasPrefix("en") {
-                            rx &+= h2.ifm_data.ifi_ibytes
-                            tx &+= h2.ifm_data.ifi_obytes
-                        }
-                    }
+    /// 64-bit byte counters (IFMIB) of every interface except loopback, keyed by name.
+    static func interfaceCounters() -> [String: InterfaceCounters] {
+        var result: [String: InterfaceCounters] = [:]
+        guard let list = if_nameindex() else { return result }
+        defer { if_freenameindex(list) }
+        var i = 0
+        while list[i].if_index != 0, let cName = list[i].if_name {
+            let name = String(cString: cName)
+            if !name.hasPrefix("lo") {
+                var mib: [Int32] = [CTL_NET, PF_LINK, NETLINK_GENERIC, IFMIB_IFDATA, Int32(list[i].if_index), IFDATA_GENERAL]
+                var data = ifmibdata()
+                var size = MemoryLayout<ifmibdata>.size
+                if sysctl(&mib, u_int(mib.count), &data, &size, nil, 0) == 0 {
+                    result[name] = InterfaceCounters(rx: data.ifmd_data.ifi_ibytes, tx: data.ifmd_data.ifi_obytes)
                 }
-                offset += msgLen
             }
+            i += 1
         }
-        return (rx, tx)
+        return result
+    }
+
+    static func isPhysical(_ name: String) -> Bool { name.hasPrefix("en") }
+    static func isTunnel(_ name: String) -> Bool { name.hasPrefix("utun") || name.hasPrefix("ipsec") || name.hasPrefix("ppp") }
+
+    /// Network rates from two counter sets.
+    /// Normally only physical interfaces (en*) are counted, so VPN / VM bridge traffic isn't counted twice.
+    /// Some setups (VPN / network extensions) report 0 inbound bytes on en*; inbound is then taken from tunnels.
+    static func networkRates(prev: [String: InterfaceCounters], cur: [String: InterfaceCounters], seconds: Double)
+        -> (rx: Double, tx: Double, inboundViaTunnel: Bool) {
+        guard seconds > 0 else { return (0, 0, false) }
+        func delta(_ name: String, _ k: KeyPath<InterfaceCounters, UInt64>) -> UInt64 {
+            guard let c = cur[name]?[keyPath: k], let p = prev[name]?[keyPath: k], c >= p else { return 0 }
+            return c - p
+        }
+        let physical = cur.keys.filter(isPhysical)
+        let inboundHidden = physical.contains { cur[$0]!.tx > 0 && cur[$0]!.rx == 0 }
+        var rx = physical.reduce(UInt64(0)) { $0 + delta($1, \.rx) }
+        let tx = physical.reduce(UInt64(0)) { $0 + delta($1, \.tx) }
+        if inboundHidden {
+            rx += cur.keys.filter(isTunnel).reduce(UInt64(0)) { $0 + delta($1, \.rx) }
+        }
+        return (Double(rx) / seconds, Double(tx) / seconds, inboundHidden)
     }
 
     // MARK: - Disk

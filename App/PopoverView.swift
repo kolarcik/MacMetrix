@@ -110,14 +110,17 @@ struct MetricRow: View {
     var body: some View {
         HStack(spacing: 10) {
             RingGauge(value: metric.fraction(snapshot), color: metric.color,
-                      label: metric == .net ? "" : metric.valueText(snapshot), lineWidth: 5)
-                .overlay { if metric == .net { Image(systemName: "arrow.up.arrow.down").font(.caption) } }
+                      label: metric.ringLabel(snapshot), lineWidth: 5)
                 .frame(width: 46, height: 46)
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
                     Label(metric.title, systemImage: metric.symbol).font(.subheadline.weight(.semibold))
                     Spacer()
-                    Text(detail).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                    if metric == .net {
+                        InOutLegend(metric: metric, snapshot: snapshot)
+                    } else {
+                        Text(detail).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                    }
                 }
                 Sparkline(history: history, metric: metric)
                     .frame(height: 28)

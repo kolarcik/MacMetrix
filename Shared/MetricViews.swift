@@ -60,6 +60,42 @@ enum Metric: String, CaseIterable, Identifiable {
     }
 }
 
+extension Metric {
+    /// Color of the second series (OUT / write) in rate charts.
+    var outColor: Color { self == .disk ? .indigo : .teal }
+
+    /// Text inside ring gauges – network shows IN and OUT on two lines.
+    func ringLabel(_ s: MetricsSnapshot) -> String {
+        self == .net ? "↓\(Fmt.shortRate(s.netIn))\n↑\(Fmt.shortRate(s.netOut))" : valueText(s)
+    }
+}
+
+/// Color-coded IN / OUT (network) or READ / WRITE (disk) values, matching the chart colors.
+struct InOutLegend: View {
+    var metric: Metric
+    var snapshot: MetricsSnapshot
+    var font: Font = .caption
+
+    var body: some View {
+        let net = metric == .net
+        HStack(spacing: 10) {
+            item(net ? (snapshot.netInViaTunnel == true ? "IN ↓ (VPN)" : "IN ↓") : "R",
+                 net ? snapshot.netIn : snapshot.diskRead, metric.color)
+            item(net ? "OUT ↑" : "W", net ? snapshot.netOut : snapshot.diskWrite, metric.outColor)
+        }
+    }
+
+    private func item(_ title: String, _ value: Double, _ color: Color) -> some View {
+        HStack(spacing: 3) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(title).foregroundStyle(.secondary)
+            Text(Fmt.rate(value)).fontWeight(.semibold).monospacedDigit()
+        }
+        .font(font)
+        .lineLimit(1)
+    }
+}
+
 /// Color that turns yellow / red under heavy load.
 func loadColor(_ base: Color, _ v: Double) -> Color {
     v >= 0.9 ? .red : v >= 0.75 ? .yellow : base
@@ -82,8 +118,9 @@ struct RingGauge: View {
             Text(label)
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .monospacedDigit()
-                .minimumScaleFactor(0.5)
-                .lineLimit(1)
+                .minimumScaleFactor(0.4)
+                .lineLimit(label.contains("\n") ? 2 : 1)
+                .multilineTextAlignment(.center)
                 .padding(lineWidth + 2)
         }
     }
@@ -94,11 +131,13 @@ struct Sparkline: View {
     struct Point: Identifiable { var id: Int; var date: Date; var value: Double; var series: String }
     var points: [Point]
     var color: Color
+    var outColor: Color = .teal
     var autoScale = false
     var showAxis = false
 
     init(history: [MetricsSnapshot], metric: Metric, showAxis: Bool = false) {
         color = metric.color
+        outColor = metric.outColor
         self.showAxis = showAxis
         switch metric {
         case .net, .disk:
@@ -118,8 +157,8 @@ struct Sparkline: View {
         Chart(points) { p in
             if p.series == "out" {
                 LineMark(x: .value("t", p.date), y: .value("v", p.value), series: .value("s", p.series))
-                    .foregroundStyle(Color.teal)
-                    .lineStyle(StrokeStyle(lineWidth: 1.2))
+                    .foregroundStyle(outColor)
+                    .lineStyle(StrokeStyle(lineWidth: 1.6))
                     .interpolationMethod(.monotone)
             } else {
                 AreaMark(x: .value("t", p.date), y: .value("v", p.value), series: .value("s", p.series))

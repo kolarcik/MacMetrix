@@ -93,7 +93,11 @@ struct MacMetrixWidgetView: View {
                         .frame(width: 30, height: 30)
                     VStack(alignment: .leading, spacing: 0) {
                         Text(m.title).font(.caption).foregroundStyle(.secondary)
-                        Text(m.valueText(entry.snapshot)).font(.headline).monospacedDigit()
+                        if m == .net {
+                            InOutLegend(metric: m, snapshot: entry.snapshot, font: .caption2)
+                        } else {
+                            Text(m.valueText(entry.snapshot)).font(.headline).monospacedDigit()
+                        }
                         Text(detail(m)).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     }
                     .frame(width: 100, alignment: .leading)
@@ -109,7 +113,7 @@ struct MacMetrixWidgetView: View {
     private func gauge(_ m: Metric) -> some View {
         VStack(spacing: 2) {
             RingGauge(value: m.fraction(entry.snapshot), color: m.color,
-                      label: m == .net ? Fmt.rate(entry.snapshot.netIn + entry.snapshot.netOut) : m.valueText(entry.snapshot),
+                      label: m.ringLabel(entry.snapshot),
                       lineWidth: 5)
             Text(m.title).font(.system(size: 9, weight: .medium)).foregroundStyle(.secondary)
         }
@@ -122,7 +126,7 @@ struct MacMetrixWidgetView: View {
         case .gpu: return s.gpuMemory.map { "paměť \(Fmt.gb($0))" } ?? ""
         case .ram: return "\(Fmt.gb(s.memUsed)) / \(Fmt.gb(s.memTotal))"
         case .disk: return "R \(Fmt.rate(s.diskRead)) W \(Fmt.rate(s.diskWrite))"
-        case .net: return "↓\(Fmt.rate(s.netIn)) ↑\(Fmt.rate(s.netOut))"
+        case .net: return "IN \(Fmt.rate(s.netIn)) · OUT \(Fmt.rate(s.netOut))"
         }
     }
 }

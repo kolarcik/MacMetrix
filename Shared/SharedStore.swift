@@ -54,6 +54,15 @@ enum Fmt {
         return i == 0 ? "\(Int(v)) \(units[i])" : String(format: v < 10 ? "%.1f %@" : "%.0f %@", v, units[i])
     }
 
+    /// Compact rate for gauges, e.g. "1.2M", "340K"
+    static func shortRate(_ bytesPerSecond: Double) -> String {
+        let units = ["B", "K", "M", "G"]
+        var v = max(bytesPerSecond, 0)
+        var i = 0
+        while v >= 1000, i < units.count - 1 { v /= 1000; i += 1 }
+        return i == 0 ? "\(Int(v))\(units[i])" : String(format: v < 10 ? "%.1f%@" : "%.0f%@", v, units[i])
+    }
+
     static func load(_ l: [Double]) -> String {
         l.prefix(3).map { String(format: "%.2f", $0) }.joined(separator: "  ")
     }
