@@ -7,6 +7,7 @@ struct SettingsView: View {
     @AppStorage("menuBarStyle") private var style: MenuBarStyle = .stacked
     @AppStorage(MenuBarMetrics.key) private var metricsRaw = MenuBarMetrics.all
     @AppStorage(StatusImage.sparklineKey) private var showSparkline = false
+    @AppStorage(AppTheme.key) private var theme: AppTheme = .system
 
     private func metricBinding(_ m: Metric) -> Binding<Bool> {
         Binding(
@@ -28,6 +29,11 @@ struct SettingsView: View {
                 if let err = store.loginItemError {
                     Text(err).font(.caption).foregroundStyle(.red)
                 }
+                Picker("Motiv", selection: $theme) {
+                    ForEach(AppTheme.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: theme) { _, new in new.apply() }
                 Picker("Interval měření", selection: Binding(
                     get: { store.sampleInterval },
                     set: { store.sampleInterval = $0 })) {

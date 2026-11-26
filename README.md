@@ -37,6 +37,7 @@ MacMetrix ukazuje ve stavové liště, v oknech a ve widgetech na ploše vytíž
   a teplota baterie. Na Macu bez baterie se ukazatel nezobrazuje.
 - **Dashboard** – velké ukazatele, grafy za 5 minut a hodinu a vytížení jednotlivých jader CPU.
 - **Widgety na plochu** (malý / střední / velký) s historií za poslední hodinu.
+- **Světlý a tmavý motiv** oken – podle systému (výchozí) nebo podle volby v Nastavení.
 - **Spouštění po přihlášení**, okno O aplikaci, Nastavení v samostatném okně.
 
 ## Snímky obrazovky
@@ -96,7 +97,7 @@ Pro instalaci na vzdálené Macy přes `scp` / SSH je k dispozici ZIP s instala�
 
 - **Klik na ukazatel** ve stavové liště otevře okno metriky; otevřené okno jiné metriky se zavře.
 - Ve spodní liště okna jsou tlačítka **Dashboard**, **O aplikaci**, **Nastavení** a **Ukončit**.
-- **Nastavení:** spouštění po přihlášení, interval měření, interval obnovení widgetu,
+- **Nastavení:** motiv oken (podle systému, světlý, tmavý), spouštění po přihlášení, interval měření, interval obnovení widgetu,
   které ukazatele zobrazit, jejich vzhled a miniatura grafu.
 - **⌘ + tažení** ukazatele přeskládá pořadí; vytažením ze stavové lišty se ukazatel odebere.
   Když není vybraný žádný, zobrazí se jen ikona aplikace.

@@ -15,6 +15,34 @@ enum MenuBarStyle: String, CaseIterable, Identifiable {
     }
 }
 
+/// Theme of the app's windows and popovers. The menu bar items always follow the menu bar itself.
+enum AppTheme: String, CaseIterable, Identifiable {
+    case system, light, dark
+    static let key = "appTheme"
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .system: "Podle systému"
+        case .light: "Světlý"
+        case .dark: "Tmavý"
+        }
+    }
+
+    static var current: AppTheme {
+        UserDefaults.standard.string(forKey: key).flatMap(AppTheme.init) ?? .system
+    }
+
+    /// nil = follow macOS (and switch with it automatically).
+    func apply() {
+        switch self {
+        case .system: NSApp.appearance = nil
+        case .light: NSApp.appearance = NSAppearance(named: .aqua)
+        case .dark: NSApp.appearance = NSAppearance(named: .darkAqua)
+        }
+    }
+}
+
 /// Which metrics have their own status bar item, stored as a comma-separated string in UserDefaults.
 enum MenuBarMetrics {
     static let key = "menuBarMetrics"
@@ -67,6 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        AppTheme.current.apply()
         // Only one status bar popover at a time: when one opens, close the others.
         NotificationCenter.default.addObserver(forName: NSWindow.didBecomeKeyNotification, object: nil, queue: .main) { note in
             guard let window = note.object as? NSWindow, MenuBarWindows.isPopover(window) else { return }
