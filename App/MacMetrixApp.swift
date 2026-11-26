@@ -203,9 +203,16 @@ struct MetricStatusLabel: View {
 
     var body: some View {
         // A MenuBarExtra label shows only one image, so label and chart are drawn into one.
-        Image(nsImage: history.map { StatusImage.withSparkline(metric, snapshot, style, history: $0) }
+        // The battery is always just a battery icon, in every style and without the chart.
+        Image(nsImage: metric == .battery ? StatusImage.battery(snapshot)
+                : history.map { StatusImage.withSparkline(metric, snapshot, style, history: $0) }
                 ?? StatusImage.render(metric, snapshot, style))
-            .accessibilityLabel("\(metric.title) \(metric.valueText(snapshot))")
+            .accessibilityLabel(accessibilityText)
+    }
+
+    private var accessibilityText: String {
+        guard metric == .battery, let b = snapshot.battery else { return "\(metric.title) \(metric.valueText(snapshot))" }
+        return "\(metric.title) \(Fmt.percent(b.level)), \(b.stateText)"
     }
 }
 
@@ -305,6 +312,70 @@ enum StatusImage {
         }
         image.isTemplate = true
         return image
+    }
+
+    // MARK: Battery
+
+    /// Battery outline in the menu bar's text color, filled with a colored bar for the charge level
+    /// (mint, yellow under 20 %, red under 10 %) and a bolt while charging. Colored, so not a template:
+    /// the outline takes `labelColor` while drawing, which follows the light or dark menu bar.
+    static func battery(_ s: MetricsSnapshot) -> NSImage {
+        let bodySize = NSSize(width: 23, height: 11.5)
+        let capSize = NSSize(width: 1.8, height: 4.5)
+        let size = NSSize(width: ceil(bodySize.width + capSize.width + 1.5), height: height)
+        let level = min(max(s.battery?.level ?? 0, 0), 1)
+        let charging = s.battery?.charging == true
+        let fill = NSColor(Metric.battery.strokeColor(level))
+
+        let img = NSImage(size: size, flipped: false) { _ in
+            let body = NSRect(x: 0.5, y: ((height - bodySize.height) / 2).rounded() + 0.5,
+                              width: bodySize.width, height: bodySize.height)
+            let outline = NSBezierPath(roundedRect: body, xRadius: 3.2, yRadius: 3.2)
+            outline.lineWidth = 1
+            NSColor.labelColor.withAlphaComponent(0.55).setStroke()
+            outline.stroke()
+
+            let cap = NSRect(x: body.maxX + 1, y: body.midY - capSize.height / 2, width: capSize.width, height: capSize.height)
+            NSColor.labelColor.withAlphaComponent(0.55).setFill()
+            NSBezierPath(roundedRect: cap, xRadius: 0.9, yRadius: 0.9).fill()
+
+            let inner = body.insetBy(dx: 2, dy: 2)
+            if level > 0 {
+                let bar = NSRect(x: inner.minX, y: inner.minY, width: max(inner.width * level, 1.5), height: inner.height)
+                fill.setFill()
+                NSBezierPath(roundedRect: bar, xRadius: 1.6, yRadius: 1.6).fill()
+            }
+
+            if charging, let ctx = NSGraphicsContext.current {
+                let bolt = boltPath(in: NSRect(x: body.midX - 4.5, y: body.midY - 7, width: 9, height: 14))
+                // Cut a thin gap around the bolt so it stands out from both the fill and the outline.
+                ctx.compositingOperation = .destinationOut
+                NSColor.black.setStroke()
+                bolt.lineWidth = 2
+                bolt.stroke()
+                ctx.compositingOperation = .sourceOver
+                NSColor.labelColor.setFill()
+                bolt.fill()
+            }
+            return true
+        }
+        img.isTemplate = false
+        return img
+    }
+
+    /// Lightning bolt filling `r`.
+    private static func boltPath(in r: NSRect) -> NSBezierPath {
+        let p = NSBezierPath()
+        func pt(_ x: CGFloat, _ y: CGFloat) -> NSPoint { NSPoint(x: r.minX + x * r.width, y: r.minY + y * r.height) }
+        p.move(to: pt(0.62, 1))
+        p.line(to: pt(0.08, 0.42))
+        p.line(to: pt(0.46, 0.42))
+        p.line(to: pt(0.36, 0))
+        p.line(to: pt(0.92, 0.58))
+        p.line(to: pt(0.54, 0.58))
+        p.close()
+        p.lineJoinStyle = .round
+        return p
     }
 
     // MARK: Mini chart
