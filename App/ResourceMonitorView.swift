@@ -129,7 +129,7 @@ struct ResourceMonitorView: View {
         let cores = Double(ProcessInfo.processInfo.activeProcessorCount)
         return HStack(spacing: 16) {
             Text("Procesů: \(procs.count)")
-            Text("Vláken: " + procs.reduce(0) { $0 + max($1.threads, 0) }.formatted() + (procs.contains { $0.threads < 0 } ? "+" : ""))
+            (Text("Vláken: \(procs.reduce(0) { $0 + max($1.threads, 0) })") + Text(procs.contains { $0.threads < 0 } ? "+" : ""))
                 .help("Jen procesy přihlášeného uživatele – u ostatních systém počet vláken nesdělí.")
             Text("CPU: \(Int((cpu / cores).rounded())) %")
             Text("TCP spojení: \(monitor.connections.count)")
