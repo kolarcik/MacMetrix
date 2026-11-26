@@ -45,7 +45,8 @@ final class TemperatureSensors {
     /// (average CPU, hottest CPU sensor, SSD) in °C.
     func read() -> (cpu: Double?, cpuMax: Double?, ssd: Double?) {
         let now = ProcessInfo.processInfo.systemUptime
-        if let last, now - last.time < Self.minInterval { return last.value }
+        // Half a second of slack: the sampling timer has 10 % tolerance, a 5 s sample may come at 4.9 s.
+        if let last, now - last.time < Self.minInterval - 0.5 { return last.value }
         let c = values(cpu)
         let s = values(ssd)
         let value = (c.isEmpty ? nil : c.reduce(0, +) / Double(c.count), c.max(), s.max())

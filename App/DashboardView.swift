@@ -16,7 +16,11 @@ struct DashboardView: View {
     /// at the default 1 s interval): it looks the same at this width and halves the work of
     /// redrawing five charts every second. Buckets follow the clock, so they don't shift as time passes.
     private var data: [MetricsSnapshot] {
-        guard range == .fiveMinutes else { return store.minuteHistory + [store.current] }
+        guard range == .fiveMinutes else {
+            // Right after a minute closes, its average carries the current sample's date: skip the duplicate.
+            let newer = store.minuteHistory.last.map { store.current.date > $0.date } ?? true
+            return newer ? store.minuteHistory + [store.current] : store.minuteHistory
+        }
         var result: [MetricsSnapshot] = []
         var bucket: [MetricsSnapshot] = []
         var key = Int.min

@@ -28,8 +28,15 @@ APP="build/release/Build/Products/Release/MacMetrix.app"
 codesign --verify --deep --strict --verbose=1 "$APP"
 
 VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Contents/Info.plist")
-IDENTITY=$(codesign -dvv "$APP" 2>&1 | sed -n 's/^Authority=\(Developer ID Application.*\)/\1/p' | head -1)
-[[ -n "$IDENTITY" ]] || { echo "Aplikace není podepsaná Developer ID"; exit 1; }
+CERT_NAME=$(codesign -dvv "$APP" 2>&1 | sed -n 's/^Authority=\(Developer ID Application.*\)/\1/p' | head -1)
+[[ -n "$CERT_NAME" ]] || { echo "Aplikace není podepsaná Developer ID"; exit 1; }
+# DMG podepiš stejným certifikátem jako aplikaci – podle SHA-1 jejího listového certifikátu,
+# jméno by po obnově certifikátu (starý i nový v Klíčence) bylo nejednoznačné.
+CERTS=$(mktemp -d)
+(cd "$CERTS" && codesign -d --extract-certificates "$OLDPWD/$APP" 2>/dev/null)
+IDENTITY=$(openssl x509 -inform DER -in "$CERTS/codesign0" -noout -fingerprint -sha1 | sed 's/.*=//; s/://g')
+rm -rf "$CERTS"
+[[ -n "$IDENTITY" ]] || { echo "Nepodařilo se zjistit certifikát aplikace"; exit 1; }
 lipo -archs "$APP/Contents/MacOS/MacMetrix"
 
 echo "==> Vytvářím DMG"

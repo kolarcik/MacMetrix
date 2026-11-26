@@ -405,13 +405,27 @@ private struct MemoryBar: View {
     }
 }
 
-/// Hands the hosting NSWindow to a closure once the view is in a window.
+/// Hands the hosting NSWindow to a closure whenever the view moves into (or out of) a window.
 struct WindowReader: NSViewRepresentable {
     var onWindow: (NSWindow?) -> Void
 
-    func makeNSView(context: Context) -> NSView { NSView() }
+    final class WindowView: NSView {
+        var onWindow: ((NSWindow?) -> Void)?
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            let window = window
+            DispatchQueue.main.async { [weak self] in self?.onWindow?(window) }
+        }
+    }
 
-    func updateNSView(_ view: NSView, context: Context) {
-        DispatchQueue.main.async { onWindow(view.window) }
+    func makeNSView(context: Context) -> WindowView {
+        let view = WindowView()
+        view.onWindow = onWindow
+        return view
+    }
+
+    func updateNSView(_ view: WindowView, context: Context) {
+        view.onWindow = onWindow
+        if let window = view.window { DispatchQueue.main.async { onWindow(window) } }
     }
 }

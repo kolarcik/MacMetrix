@@ -30,10 +30,20 @@ enum MenuBarMetrics {
     }
 
     /// Something must always stay in the menu bar, otherwise the app can't be reached.
+    /// Also gives items hidden by macOS another chance to appear.
     static func restoreIfEmpty() {
+        HiddenBySystem.shared.metrics.removeAll()
         let raw = UserDefaults.standard.string(forKey: key) ?? all
         if decode(raw).isEmpty { UserDefaults.standard.set(all, forKey: key) }
     }
+}
+
+/// Metric items macOS took out of the menu bar on its own (no room). Not saved: they stay selected
+/// in Settings and get another chance on the next launch, when the app is opened again, or when the
+/// metric is switched off and on in Settings.
+final class HiddenBySystem: ObservableObject {
+    static let shared = HiddenBySystem()
+    @Published var metrics: Set<Metric> = []
 }
 
 /// Menu bar app: closing the last popover / dashboard window must never quit it.
@@ -75,6 +85,7 @@ struct MacMetrixApp: App {
     @AppStorage("menuBarStyle") private var style: MenuBarStyle = .stacked
     @AppStorage(MenuBarMetrics.key) private var metricsRaw = MenuBarMetrics.all
     @AppStorage(StatusImage.sparklineKey) private var showSparkline = false
+    @ObservedObject private var hiddenBySystem = HiddenBySystem.shared
 
     var body: some Scene {
         // One independent status bar item per metric (SceneBuilder has no ForEach).
@@ -92,7 +103,10 @@ struct MacMetrixApp: App {
                                          set: { inserted in
                                              // SwiftUI also writes false when the item goes away because a metric
                                              // got selected – only react when the selection is still empty.
-                                             if !inserted, MenuBarMetrics.decode(metricsRaw).isEmpty { metricsRaw = MenuBarMetrics.all }
+                                             if !inserted, MenuBarMetrics.decode(metricsRaw).isEmpty {
+                                                 hiddenBySystem.metrics.removeAll()
+                                                 metricsRaw = MenuBarMetrics.all
+                                             }
                                          })) {
             popover
         } label: {
@@ -138,13 +152,24 @@ struct MacMetrixApp: App {
     }
 
     /// Settings are the source of truth. A removal coming from the menu bar is only stored when the user
-    /// is ⌘-dragging the item out; macOS also hides items on its own (no room, relaunch) and that must not
-    /// silently uncheck the metric in Settings.
+    /// is ⌘-dragging the item out; macOS also hides items on its own (no room) and that must not silently
+    /// uncheck the metric in Settings. Such items are remembered in `HiddenBySystem`, so the binding
+    /// agrees with the menu bar and SwiftUI doesn't keep putting the item back.
     private func binding(for m: Metric) -> Binding<Bool> {
         Binding(
-            get: { MenuBarMetrics.decode(metricsRaw).contains(m) },
+            get: { MenuBarMetrics.decode(metricsRaw).contains(m) && !hiddenBySystem.metrics.contains(m) },
             set: { on in
-                if !on && !NSEvent.modifierFlags.contains(.command) { return }
+                if !on && !NSEvent.modifierFlags.contains(.command) {
+                    // SwiftUI also writes false when it removes the item because the metric got unselected;
+                    // only a metric that is still selected was hidden by macOS. Deferred: SwiftUI may call
+                    // this while updating scenes.
+                    DispatchQueue.main.async {
+                        let raw = UserDefaults.standard.string(forKey: MenuBarMetrics.key) ?? MenuBarMetrics.all
+                        if MenuBarMetrics.decode(raw).contains(m) { HiddenBySystem.shared.metrics.insert(m) }
+                    }
+                    return
+                }
+                if hiddenBySystem.metrics.contains(m) { hiddenBySystem.metrics.remove(m) }
                 var list = MenuBarMetrics.decode(metricsRaw).filter { $0 != m }
                 if on { list.append(m) }
                 metricsRaw = MenuBarMetrics.encode(Metric.allCases.filter(list.contains))

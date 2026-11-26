@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 
 command -v xcodegen >/dev/null && xcodegen generate --quiet
 
-rm -rf build/release dist
+rm -rf build/release dist/MacMetrix.zip dist/install.sh # DMGs from make-dmg.sh stay
 xcodebuild -project MacMetrix.xcodeproj -scheme MacMetrix -configuration Release \
   -destination "generic/platform=macOS" -derivedDataPath build/release \
   OTHER_CODE_SIGN_FLAGS="--timestamp" CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO build | grep -E "error|BUILD" || true

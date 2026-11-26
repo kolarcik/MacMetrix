@@ -12,6 +12,7 @@ struct SettingsView: View {
         Binding(
             get: { MenuBarMetrics.decode(metricsRaw).contains(m) },
             set: { on in
+                HiddenBySystem.shared.metrics.remove(m) // switching it on again retries an item macOS hid
                 var list = MenuBarMetrics.decode(metricsRaw).filter { $0 != m }
                 if on { list.append(m) }
                 metricsRaw = MenuBarMetrics.encode(Metric.allCases.filter(list.contains))
