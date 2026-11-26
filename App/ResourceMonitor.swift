@@ -69,7 +69,8 @@ struct ListeningPort: Identifiable, Hashable {
 /// Samples every process, its network connections and listening ports while the Resource Monitor
 /// window is open.
 /// - processes, CPU, memory, owner: `ps` (sees all processes); full name via `proc_pidpath`
-/// - threads and disk I/O: `proc_pidinfo` / `proc_pid_rusage` (only processes of the current user)
+/// - threads, footprint, disk I/O, open files: `ProcReader` – processes of the current user directly,
+///   all others through the read-only privileged helper when the user approved it
 /// - network: one `nettop` call gives per-process totals and every socket, including root processes
 @MainActor
 final class ResourceMonitor: ObservableObject {
@@ -77,10 +78,29 @@ final class ResourceMonitor: ObservableObject {
     @Published private(set) var connections: [NetConnection] = []
     @Published private(set) var listening: [ListeningPort] = []
     @Published private(set) var files: [OpenFile] = []
+    /// The privileged helper answered the last sample: system processes have full details.
+    @Published private(set) var helperActive = false
     /// Open files are only collected while the Soubory tab is shown.
     var collectFiles = false {
         didSet { if collectFiles && !oldValue { poll() } else if !collectFiles { files = [] } }
     }
+
+    /// One point of a process's history.
+    struct ProcSample {
+        var date: Date
+        /// Percent of one core.
+        var cpu: Double
+        /// Footprint, or resident memory where the footprint can't be read.
+        var memory: Double
+        /// Bytes per second read + written; -1 when unknown.
+        var disk: Double
+        var net: Double
+    }
+
+    /// Recent history of every process, for the graphs of the selected one. Not published: it changes
+    /// together with `processes`, which already redraws the views.
+    private(set) var history: [Int32: [ProcSample]] = [:]
+    static let historySeconds: TimeInterval = 300
 
     weak var window: NSWindow?
     private var timer: Timer?
@@ -91,6 +111,7 @@ final class ResourceMonitor: ObservableObject {
 
     func start() {
         guard timer == nil else { return }
+        PrivilegedHelper.shared.refresh() // approved or switched off in System Settings meanwhile?
         poll()
         let t = Timer(timeInterval: Self.interval, repeats: true) { [weak self] timer in
             guard self != nil else { timer.invalidate(); return }
@@ -119,14 +140,31 @@ final class ResourceMonitor: ObservableObject {
                 guard let self else { return }
                 self.polling = false
                 guard self.timer != nil else { return }
+                self.record(s.processes)
                 self.processes = s.processes
                 self.connections = s.connections
                 self.listening = s.listening
+                if self.helperActive != s.helperActive { self.helperActive = s.helperActive }
                 self.files = self.collectFiles ? s.files : []
                 // The Soubory tab opened while a sample without files was running: don't wait for the next tick.
                 if self.collectFiles && !collectFiles { self.poll() }
             }
         }
+    }
+
+    private func record(_ rows: [ProcessRow]) {
+        let now = Date()
+        let cutoff = now.addingTimeInterval(-Self.historySeconds)
+        var next: [Int32: [ProcSample]] = [:]
+        next.reserveCapacity(rows.count)
+        for r in rows {
+            var list = history[r.pid] ?? []
+            if let first = list.first, first.date < cutoff { list.removeAll { $0.date < cutoff } }
+            list.append(ProcSample(date: now, cpu: r.cpu, memory: Double(r.footprint >= 0 ? UInt64(r.footprint) : r.memory),
+                                   disk: r.diskRead < 0 ? -1 : r.diskRead + r.diskWrite, net: r.net))
+            next[r.pid] = list
+        }
+        history = next // exited processes drop out
     }
 
     // MARK: - Ending processes
@@ -173,6 +211,7 @@ final class ResourceSampler: @unchecked Sendable {
         var connections: [NetConnection]
         var listening: [ListeningPort]
         var files: [OpenFile]
+        var helperActive: Bool
     }
 
     private var prevTime: TimeInterval?
@@ -188,6 +227,8 @@ final class ResourceSampler: @unchecked Sendable {
         let dt = prevTime.map { now - $0 } ?? 0
         let ps = Self.ps()
         let net = Self.nettop()
+        // Other users' and system processes, when the privileged helper is approved.
+        let helper = HelperClient.shared.processStats()
 
         var disk: [Int32: (UInt64, UInt64)] = [:]
         var pageins: [Int32: UInt64] = [:]
@@ -199,23 +240,16 @@ final class ResourceSampler: @unchecked Sendable {
             let (name, path) = displayName(p.pid, comm: p.comm)
             var row = ProcessRow(pid: p.pid, ppid: p.ppid, name: name, user: p.user, path: path, cpu: p.cpu,
                                  threads: -1, memory: p.rss, diskRead: -1, diskWrite: -1, netIn: 0, netOut: 0)
-            var task = proc_taskinfo()
-            if proc_pidinfo(p.pid, PROC_PIDTASKINFO, 0, &task, Int32(MemoryLayout<proc_taskinfo>.size)) > 0 {
-                row.threads = Int(task.pti_threadnum)
-            }
-            var info = rusage_info_v4()
-            let r = withUnsafeMutablePointer(to: &info) {
-                $0.withMemoryRebound(to: rusage_info_t?.self, capacity: 1) { proc_pid_rusage(p.pid, RUSAGE_INFO_V4, $0) }
-            }
-            if r == 0 {
-                row.footprint = Int64(info.ri_phys_footprint)
-                row.maxFootprint = Int64(info.ri_lifetime_max_phys_footprint)
-                pageins[p.pid] = info.ri_pageins
+            if let st = ProcReader.stats(p.pid) ?? helper?[p.pid] {
+                row.threads = st.threads
+                row.footprint = Int64(st.footprint)
+                row.maxFootprint = Int64(st.maxFootprint)
+                pageins[p.pid] = st.pageins
                 row.pageins = 0
-                if let prev = prevPageins[p.pid], dt > 0, info.ri_pageins >= prev {
-                    row.pageins = Double(info.ri_pageins - prev) / dt
+                if let prev = prevPageins[p.pid], dt > 0, st.pageins >= prev {
+                    row.pageins = Double(st.pageins - prev) / dt
                 }
-                let c = (info.ri_diskio_bytesread, info.ri_diskio_byteswritten)
+                let c = (st.diskRead, st.diskWrite)
                 disk[p.pid] = c
                 if let prev = prevDisk[p.pid], dt > 0 {
                     row.diskRead = c.0 >= prev.0 ? Double(c.0 - prev.0) / dt : 0
@@ -272,7 +306,8 @@ final class ResourceSampler: @unchecked Sendable {
         prevSockets = sockets
         return Sample(processes: rows, connections: connections,
                       listening: ports.values.sorted { ($0.port, $0.pid) < ($1.port, $1.pid) },
-                      files: collectFiles ? rows.flatMap { Self.openFiles($0.pid, name: $0.name) } : [])
+                      files: collectFiles ? Self.openFiles(rows, nameOf: nameOf, viaHelper: helper != nil) : [],
+                      helperActive: helper != nil)
     }
 
     /// App bundle name for apps ("Microsoft Teams"), the executable's full name otherwise
@@ -325,44 +360,24 @@ final class ResourceSampler: @unchecked Sendable {
 
     // MARK: - Open files
 
-    /// Working directory and every vnode the process has open. Only processes of the current user
-    /// are readable; scanning all of them takes ~10–20 ms.
-    static func openFiles(_ pid: Int32, name: String) -> [OpenFile] {
-        let size = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, nil, 0)
-        guard size > 0 else { return [] }
-        var result: [OpenFile] = []
-        var cwd = proc_vnodepathinfo()
-        if proc_pidinfo(pid, PROC_PIDVNODEPATHINFO, 0, &cwd, Int32(MemoryLayout<proc_vnodepathinfo>.size)) > 0 {
-            let path = cString(cwd.pvi_cdir.vip_path)
-            if !path.isEmpty && path != "/" {
-                result.append(OpenFile(id: "\(pid)|cwd", pid: pid, name: name, fd: -1, path: path, kind: .cwd, mode: ""))
+    /// Open files of every process: all of them through the helper, otherwise those of the current user.
+    private static func openFiles(_ rows: [ProcessRow], nameOf: [Int32: String], viaHelper: Bool) -> [OpenFile] {
+        let raw = (viaHelper ? HelperClient.shared.openFiles() : nil) ?? rows.flatMap { ProcReader.openFiles($0.pid) }
+        return raw.map { f in
+            let kind: OpenFile.Kind = switch f.kind {
+            case .file: .file
+            case .folder: .folder
+            case .device: .device
+            case .cwd: .cwd
             }
-        }
-        // Room for a few more descriptors opened between the two calls.
-        var fds = [proc_fdinfo](repeating: proc_fdinfo(), count: Int(size) / MemoryLayout<proc_fdinfo>.size + 16)
-        let got = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, &fds, Int32(fds.count * MemoryLayout<proc_fdinfo>.size))
-        guard got > 0 else { return result }
-        for fd in fds.prefix(Int(got) / MemoryLayout<proc_fdinfo>.size) where fd.proc_fdtype == UInt32(PROX_FDTYPE_VNODE) {
-            var vi = vnode_fdinfowithpath()
-            guard proc_pidfdinfo(pid, fd.proc_fd, PROC_PIDFDVNODEPATHINFO, &vi,
-                                 Int32(MemoryLayout<vnode_fdinfowithpath>.size)) > 0 else { continue }
-            let path = cString(vi.pvip.vip_path)
-            // /dev/null is open in nearly every process and only adds noise.
-            guard !path.isEmpty, path != "/dev/null" else { continue }
-            let type = vi.pvip.vip_vi.vi_stat.vst_mode & S_IFMT
-            let kind: OpenFile.Kind = type == S_IFDIR ? .folder : (type == S_IFCHR || type == S_IFBLK) ? .device : .file
-            // Kernel FREAD = 1, FWRITE = 2 (not exported to user space).
-            let flags = vi.pfi.fi_openflags
-            let mode = flags & 3 == 3 ? "čtení i zápis" : flags & 2 != 0 ? "zápis" : "čtení"
-            result.append(OpenFile(id: "\(pid)|\(fd.proc_fd)|\(path)", pid: pid, name: name, fd: fd.proc_fd, path: path,
-                                   kind: kind, mode: mode))
-        }
-        return result
-    }
-
-    private static func cString<T>(_ tuple: T) -> String {
-        withUnsafeBytes(of: tuple) { raw in
-            String(decoding: raw.prefix { $0 != 0 }, as: UTF8.self)
+            let mode = switch f.mode {
+            case "rw": "čtení i zápis"
+            case "w": "zápis"
+            case "r": "čtení"
+            default: ""
+            }
+            return OpenFile(id: "\(f.pid)|\(f.fd)|\(f.path)", pid: f.pid, name: nameOf[f.pid] ?? "pid \(f.pid)",
+                            fd: f.fd, path: f.path, kind: kind, mode: mode)
         }
     }
 

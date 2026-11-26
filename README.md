@@ -38,7 +38,10 @@ MacMetrix ukazuje ve stavové liště, v oknech a ve widgetech na ploše vytíž
   vysunutí disku. Procesy vybrané v *Přehledu* nebo *Paměti* filtrují záložky *Síť* a *Soubory*.
   Z kontextové nabídky jde proces ukončit, vynutit jeho ukončení nebo ho zobrazit ve Finderu.
   Vpravo jsou grafy za 1 minutu, 5 minut nebo hodinu: CPU, **historie každého jádra**
-  (efektivní E a výkonná P zvlášť), paměť, disk, síť a GPU.
+  (efektivní E a výkonná P zvlášť), paměť, disk, síť, baterie a GPU. Když je vybraný jeden
+  proces, nad nimi jsou grafy jeho CPU, paměti, disku a sítě za posledních 5 minut.
+  Volitelně (*Nastavení → Údaje o systémových procesech*) doplní pomocná služba s právy
+  správce vlákna, paměť, disk a otevřené soubory i u procesů systému a jiných uživatelů.
 - **Úklid disku** – průvodce najde DerivedData, podporu zařízení, nedostupné simulátory,
   cache SPM/CocoaPods/NuGet/npm/Homebrew/Gradle, bin/obj a .build v projektech, staré
   dočasné soubory a logy. Nejdřív ukáže velikosti a nechá vybrat kategorie; mazat jde
@@ -103,7 +106,8 @@ Pro instalaci na vzdálené Macy přes `scp` / SSH je k dispozici ZIP s instala�
 - **Klik na ukazatel** ve stavové liště otevře okno metriky; otevřené okno jiné metriky se zavře.
 - Ve spodní liště okna jsou tlačítka **Monitor prostředků**, **O aplikaci**, **Nastavení** a **Ukončit**.
 - **Nastavení:** motiv oken (podle systému, světlý, tmavý), spouštění po přihlášení, interval měření, interval obnovení widgetu,
-  které ukazatele zobrazit, jejich vzhled a miniatura grafu.
+  které ukazatele zobrazit, jejich vzhled a miniatura grafu, údaje o systémových procesech
+  pro Monitor prostředků.
 - **⌘ + tažení** ukazatele přeskládá pořadí; vytažením ze stavové lišty se ukazatel odebere.
   Když není vybraný žádný, zobrazí se jen ikona aplikace.
 - **Monitor prostředků** se otevře tlačítkem *Monitor prostředků* ve spodní liště okna.
@@ -126,6 +130,20 @@ procesy přes `nettop`, diskové přes `proc_pid_rusage` (jen procesy přihláš
 Monitor prostředků bere spojení a porty z `nettop` (vidí i systémové procesy); počet vláken a disk
 zná jen u procesů přihlášeného uživatele, u ostatních ukazuje „–“. Totéž platí pro footprint
 paměti (`proc_pid_rusage`) a otevřené soubory (`proc_pidinfo` / `proc_pidfdinfo`). Měří jen při otevřeném okně.
+
+### Údaje o systémových procesech (pomocná služba)
+
+Bez práv správce macOS neprozradí vlákna, paměť, disk ani otevřené soubory procesů jiných
+uživatelů a systému. Přepínač *Nastavení → Údaje o systémových procesech* zaregistruje přes
+`SMAppService.daemon` pomocnou službu `MacMetrixHelper` (launchd daemon, běží jako root).
+macOS ji nechá spustit až po schválení v *Nastavení systému → Obecné → Položky při přihlášení*.
+
+- Služba **jen čte** (`proc_pid_rusage`, `proc_pidinfo`, `proc_pidfdinfo`) – nemá žádnou
+  operaci, která by něco měnila, mazala nebo posílala signály procesům.
+- Přijme spojení jen od aplikace `tech.synot.MacMetrix` podepsané stejným týmem (kontrola
+  podpisu přes `setCodeSigningRequirement`); aplikace stejně ověřuje podpis služby.
+- Spouští ji launchd na požádání a po dvou minutách bez dotazu sama skončí.
+- Vypnutím přepínače se služba odregistruje.
 
 ## Řešení potíží
 
@@ -174,6 +192,8 @@ takže nepotřebuje provisioning profil.
 ```
 App/       aplikace ve stavové liště: ukazatele, okna metrik, Monitor prostředků,
            úklid disku, nastavení, O aplikaci, teplotní senzory, procesy
+Helper/    pomocná služba s právy správce (jen čtení) a čtení údajů o procesech sdílené s aplikací
+LaunchDaemons/  launchd plist pomocné služby (kopíruje se do Contents/Library/LaunchDaemons)
 Widget/    WidgetKit extension
 Shared/    měření metrik, sdílený stav, společné SwiftUI komponenty (ukazatele, grafy)
 scripts/

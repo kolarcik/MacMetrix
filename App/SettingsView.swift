@@ -8,6 +8,7 @@ struct SettingsView: View {
     @AppStorage(MenuBarMetrics.key) private var metricsRaw = MenuBarMetrics.all
     @AppStorage(StatusImage.sparklineKey) private var showSparkline = false
     @AppStorage(AppTheme.key) private var theme: AppTheme = .system
+    @ObservedObject private var helper = PrivilegedHelper.shared
 
     private func metricBinding(_ m: Metric) -> Binding<Bool> {
         Binding(
@@ -82,6 +83,37 @@ struct SettingsView: View {
                      : "Pořadí ukazatelů změníš přetažením se stisknutým ⌘."
                         + (Metric.available.contains(.battery) ? " Baterie má vždy vlastní ikonu s procentem, bez miniatury grafu." : ""))
                     .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section {
+                Toggle(isOn: Binding(get: { helper.status == .enabled || helper.status == .requiresApproval },
+                                     set: { helper.setEnabled($0) })) {
+                    Text("Údaje o systémových procesech")
+                    Text("Doplní vlákna, paměť, disk a otevřené soubory i u procesů systému a jiných uživatelů. Pomocná služba běží s právy správce, ale jen čte – nic nemění ani neukončuje.")
+                }
+                switch helper.status {
+                case .requiresApproval:
+                    HStack {
+                        Text("Čeká na schválení v Nastavení systému → Obecné → Položky při přihlášení.")
+                            .font(.caption).foregroundStyle(.orange)
+                        Spacer()
+                        Button("Otevřít…") { helper.openSystemSettings() }
+                    }
+                case .notFound:
+                    Text("Pomocná služba v aplikaci chybí – nainstalujte MacMetrix znovu.")
+                        .font(.caption).foregroundStyle(.red)
+                default:
+                    EmptyView()
+                }
+                if let err = helper.error {
+                    Text(err).font(.caption).foregroundStyle(.red)
+                }
+            } header: {
+                Text("Monitor prostředků")
+            }
+            .onAppear { helper.refresh() }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                helper.refresh() // back from System Settings after approving
             }
 
             Section {

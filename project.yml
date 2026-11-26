@@ -23,7 +23,17 @@ targets:
   MacMetrix:
     type: application
     platform: macOS
-    sources: [App, Shared]
+    sources:
+      - App
+      - Shared
+      - Helper/HelperProtocol.swift
+      - Helper/ProcReader.swift
+      # launchd plist of the privileged helper, registered with SMAppService.daemon
+      - path: LaunchDaemons/tech.synot.MacMetrix.Helper.plist
+        buildPhase:
+          copyFiles:
+            destination: wrapper
+            subpath: Contents/Library/LaunchDaemons
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: tech.synot.MacMetrix
@@ -47,6 +57,11 @@ targets:
     dependencies:
       - target: MacMetrixWidget
         embed: true
+      - target: MacMetrixHelper
+        embed: true
+        codeSign: true
+        copy:
+          destination: executables
 
   MacMetrixWidget:
     type: app-extension
@@ -71,3 +86,22 @@ targets:
         com.apple.security.app-sandbox: true
         com.apple.security.application-groups:
           - $(APP_GROUP_ID)
+
+  # Read-only privileged helper (launchd daemon), see Helper/HelperProtocol.swift.
+  MacMetrixHelper:
+    type: tool
+    platform: macOS
+    sources: [Helper]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: tech.synot.MacMetrix.Helper
+        PRODUCT_NAME: MacMetrixHelper
+        CREATE_INFOPLIST_SECTION_IN_BINARY: YES
+        SKIP_INSTALL: YES
+    info:
+      path: Helper/Info.plist
+      properties:
+        CFBundleIdentifier: tech.synot.MacMetrix.Helper
+        CFBundleName: MacMetrixHelper
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)

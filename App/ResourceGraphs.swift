@@ -1,10 +1,12 @@
 import SwiftUI
 
 /// Right-hand panel of the Resource Monitor, like the graphs in Windows: total CPU, history of every
-/// core, memory, disk, network, battery (on a MacBook) and GPU. Observes the store on its own, so the process tables next to it
-/// don't redraw on every sample.
-struct ResourceGraphs: View {
+/// core, memory, disk, network, battery (on a MacBook) and GPU. Observes the store on its own, so the process
+/// tables next to it don't redraw on every sample. `header` goes above the system graphs (graphs of the
+/// selected process).
+struct ResourceGraphs<Header: View>: View {
     @EnvironmentObject var store: MonitorStore
+    @ViewBuilder var header: () -> Header
     /// Kept in defaults: the view is recreated whenever the window comes back on screen.
     @AppStorage("resourcesRange") private var range: Range = .oneMinute
 
@@ -52,6 +54,8 @@ struct ResourceGraphs: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+
+                header()
 
                 card(.cpu, data, value: Fmt.percent(s.cpu),
                      subtitle: "usr \(Fmt.percent(s.cpuUser)) · sys \(Fmt.percent(s.cpuSystem)) · load \(Fmt.load(s.load))")
@@ -125,9 +129,10 @@ struct ResourceGraphs: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: columns), spacing: 6) {
                     ForEach(0..<count, id: \.self) { i in
                         let efficient = i < efficiency
-                        CoreGraph(label: efficient ? "E\(i + 1)" : "P\(i - efficiency + 1)",
+                        MiniGraph(label: efficient ? "E\(i + 1)" : "P\(i - efficiency + 1)",
+                                  value: Fmt.percent(store.current.cores[i]),
                                   color: efficiency == 0 ? Metric.cpu.color : efficient ? .teal : .indigo,
-                                  points: points(core: i, data), current: store.current.cores[i])
+                                  points: points(core: i, data))
                     }
                 }
             }
@@ -137,20 +142,25 @@ struct ResourceGraphs: View {
     }
 }
 
-/// History of one CPU core: area under the load, 0...100 %.
-private struct CoreGraph: View {
+extension ResourceGraphs where Header == EmptyView {
+    init() { self.init(header: { EmptyView() }) }
+}
+
+/// Small history graph (one CPU core, one resource of a process): area under the values.
+struct MiniGraph: View {
     var label: String
+    var value: String
     var color: Color
-    /// x 0...1 across the selected range (1 = now), load 0...1.
+    /// x 0...1 across the shown range (1 = now), y 0...1 of the graph height.
     var points: [(x: Double, y: Double)]
-    var current: Double
+    var height: CGFloat = 36
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {
                 Text(label).foregroundStyle(.secondary)
                 Spacer()
-                Text(Fmt.percent(current)).monospacedDigit()
+                Text(value).monospacedDigit().lineLimit(1)
             }
             .font(.caption2)
             Canvas { ctx, size in
@@ -174,8 +184,52 @@ private struct CoreGraph: View {
                 ctx.fill(area, with: .color(color.opacity(0.3)))
                 ctx.stroke(line, with: .color(color), lineWidth: 1)
             }
-            .frame(height: 36)
+            .frame(height: height)
             .overlay(RoundedRectangle(cornerRadius: 2).stroke(.secondary.opacity(0.25), lineWidth: 0.5))
         }
+    }
+}
+
+/// History of the process selected in the tables: CPU, memory, disk and network over the last minutes,
+/// collected since the window opened.
+struct ProcessGraphs: View {
+    @ObservedObject var monitor: ResourceMonitor
+    var pid: Int32
+
+    var body: some View {
+        if let row = monitor.processes.first(where: { $0.pid == pid }) {
+            let samples = monitor.history[pid] ?? []
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(nsImage: ProcessIcon.image(row.pid, name: row.name)).resizable().frame(width: 16, height: 16)
+                    Text(row.name).font(.headline).lineLimit(1)
+                    Spacer()
+                    Text(verbatim: "PID \(row.pid)").font(.caption).foregroundStyle(.secondary)
+                }
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
+                    graph("CPU", String(format: "%.1f %%", row.cpu), Metric.cpu.color, samples, \.cpu, minScale: 100)
+                    graph("Paměť", Fmt.bytes(UInt64(max(samples.last?.memory ?? 0, 0))), Metric.ram.color, samples, \.memory)
+                    graph("Disk", samples.last.map { $0.disk < 0 ? "–" : Fmt.rate($0.disk) } ?? "–",
+                          Metric.disk.color, samples, \.disk, minScale: 1024)
+                    graph("Síť", Fmt.rate(samples.last?.net ?? 0), Metric.net.color, samples, \.net, minScale: 1024)
+                }
+                Text("Posledních \(Int(ResourceMonitor.historySeconds / 60)) minut od otevření okna")
+                    .font(.caption2).foregroundStyle(.tertiary)
+            }
+            .padding(8)
+            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
+    /// Values scaled to the highest one shown (at least `minScale`), placed by time.
+    private func graph(_ label: String, _ value: String, _ color: Color, _ samples: [ResourceMonitor.ProcSample],
+                       _ key: KeyPath<ResourceMonitor.ProcSample, Double>, minScale: Double = 1) -> some View {
+        let end = samples.last?.date ?? Date()
+        let top = max(samples.map { $0[keyPath: key] }.max() ?? 0, minScale)
+        let points = samples.compactMap { s -> (x: Double, y: Double)? in
+            let x = 1 - end.timeIntervalSince(s.date) / ResourceMonitor.historySeconds
+            return x >= 0 ? (min(x, 1), max(s[keyPath: key], 0) / top) : nil
+        }
+        return MiniGraph(label: label, value: value, color: color, points: points, height: 44)
     }
 }

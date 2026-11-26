@@ -45,12 +45,17 @@ struct ResourceMonitorView: View {
                     case .network:
                         NetworkTab(monitor: monitor, filter: filterPids, search: search, actions: actions)
                     case .files:
-                        FilesTab(files: monitor.files, filter: filterPids, search: search, actions: actions)
+                        FilesTab(files: monitor.files, filter: filterPids, search: search, actions: actions,
+                                 allProcesses: monitor.helperActive)
                     }
                 }
                 .frame(minWidth: 560, idealWidth: 960, maxWidth: .infinity)
                 .layoutPriority(1)
-                ResourceGraphs()
+                ResourceGraphs {
+                    if filterPids.count == 1, let pid = filterPids.first {
+                        ProcessGraphs(monitor: monitor, pid: pid)
+                    }
+                }
             }
             Divider()
             footer
@@ -355,6 +360,8 @@ private struct FilesTab: View {
     var filter: Set<Int32>
     var search: String
     var actions: ProcessActions
+    /// Files of all processes (privileged helper), not just the current user's.
+    var allProcesses: Bool
     @State private var sort = [KeyPathComparator(\OpenFile.path)]
     @State private var selection = Set<String>()
 
@@ -378,7 +385,10 @@ private struct FilesTab: View {
                     Text("Otevřené soubory").font(.headline)
                     Text(verbatim: String(rows.count)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
                     Spacer()
-                    Text("Jen procesy přihlášeného uživatele").font(.caption).foregroundStyle(.secondary)
+                    if !allProcesses {
+                        Text("Jen procesy přihlášeného uživatele – ostatní doplní Nastavení → Údaje o systémových procesech")
+                            .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    }
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
@@ -548,7 +558,7 @@ private struct Bytes: View {
 
     var body: some View {
         Num(text: value < 0 ? "–" : Fmt.bytes(UInt64(value)), zero: value < 0)
-            .help(value < 0 ? "Systém údaj o procesu jiného uživatele nesdělí." : "")
+            .help(value < 0 ? "Systém údaj o procesu jiného uživatele nesdělí. Doplní ho Nastavení → Údaje o systémových procesech." : "")
     }
 }
 
@@ -558,7 +568,7 @@ private struct Rate: View {
 
     var body: some View {
         Num(text: value < 0 ? "–" : value < 1 ? "0" : Fmt.rate(value), zero: value < 1)
-            .help(value < 0 ? "Systém údaj o procesu jiného uživatele nesdělí." : Fmt.rate(value))
+            .help(value < 0 ? "Systém údaj o procesu jiného uživatele nesdělí. Doplní ho Nastavení → Údaje o systémových procesech." : Fmt.rate(value))
     }
 }
 
