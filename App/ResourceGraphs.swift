@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Right-hand panel of the Resource Monitor, like the graphs in Windows: total CPU, history of every
-/// core, memory, disk, network and GPU. Observes the store on its own, so the process tables next to it
+/// core, memory, disk, network, battery (on a MacBook) and GPU. Observes the store on its own, so the process tables next to it
 /// don't redraw on every sample.
 struct ResourceGraphs: View {
     @EnvironmentObject var store: MonitorStore
@@ -61,6 +61,9 @@ struct ResourceGraphs: View {
                 card(.disk, data, value: nil,
                      subtitle: "čtení \(Fmt.rate(s.diskRead)) · zápis \(Fmt.rate(s.diskWrite)) · volno \(Fmt.gb(s.diskTotal - s.diskUsed))")
                 card(.net, data, value: nil, subtitle: nil)
+                if Metric.available.contains(.battery), let battery = s.battery {
+                    card(.battery, data, value: Fmt.percent(battery.level), subtitle: battery.summary)
+                }
                 if s.gpu != nil {
                     card(.gpu, data, value: Fmt.percent(s.gpu), subtitle: s.gpuMemory.map { "paměť GPU \(Fmt.gb($0))" } ?? "")
                 }

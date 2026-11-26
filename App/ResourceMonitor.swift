@@ -17,6 +17,11 @@ struct ProcessRow: Identifiable, Hashable {
     var diskWrite: Double
     var netIn: Double
     var netOut: Double
+    /// Physical footprint ("Memory" in Activity Monitor) and its peak; -1 for other users' processes.
+    var footprint: Int64 = -1
+    var maxFootprint: Int64 = -1
+    /// Pages read in from disk per second (≈ hard faults in Windows); -1 when unknown.
+    var pageins: Double = -1
     var id: Int32 { pid }
     var net: Double { netIn + netOut }
 }
@@ -34,6 +39,20 @@ struct NetConnection: Identifiable, Hashable {
     var state: String
     var rateIn: Double
     var rateOut: Double
+}
+
+/// A file, folder or device a process holds open (Windows "Associated Handles").
+struct OpenFile: Identifiable, Hashable {
+    enum Kind: String { case file = "Soubor", folder = "Složka", device = "Zařízení", cwd = "Pracovní složka" }
+    var id: String
+    var pid: Int32
+    var name: String
+    /// File descriptor; -1 for the working directory.
+    var fd: Int32
+    var path: String
+    var kind: Kind
+    var mode: String
+    var kindName: String { kind.rawValue }
 }
 
 /// A TCP port in the Listen state, or a bound UDP port. IPv4 and IPv6 sockets of one process
@@ -57,6 +76,11 @@ final class ResourceMonitor: ObservableObject {
     @Published private(set) var processes: [ProcessRow] = []
     @Published private(set) var connections: [NetConnection] = []
     @Published private(set) var listening: [ListeningPort] = []
+    @Published private(set) var files: [OpenFile] = []
+    /// Open files are only collected while the Soubory tab is shown.
+    var collectFiles = false {
+        didSet { if collectFiles && !oldValue { poll() } else if !collectFiles { files = [] } }
+    }
 
     weak var window: NSWindow?
     private var timer: Timer?
@@ -86,11 +110,11 @@ final class ResourceMonitor: ObservableObject {
     }
 
     private func poll() {
-        guard !polling else { return }
+        guard !polling, timer != nil else { return }
         polling = true
-        let sampler = sampler
+        let sampler = sampler, collectFiles = collectFiles
         queue.async {
-            let s = sampler.sample()
+            let s = sampler.sample(files: collectFiles)
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.polling = false
@@ -98,6 +122,9 @@ final class ResourceMonitor: ObservableObject {
                 self.processes = s.processes
                 self.connections = s.connections
                 self.listening = s.listening
+                self.files = self.collectFiles ? s.files : []
+                // The Soubory tab opened while a sample without files was running: don't wait for the next tick.
+                if self.collectFiles && !collectFiles { self.poll() }
             }
         }
     }
@@ -106,10 +133,24 @@ final class ResourceMonitor: ObservableObject {
 
     /// Quits apps the way the Dock does (`terminate`), other processes with SIGTERM;
     /// `force` uses `forceTerminate` / SIGKILL. Returns an error message for processes that couldn't be ended.
-    static func end(_ pids: [Int32], force: Bool) -> String? {
+    /// `paths` are the executables the user confirmed: a pid whose process exited and got reused
+    /// by another program in the meantime is left alone.
+    static func end(_ pids: [Int32], paths: [Int32: String], force: Bool) -> String? {
         var failed: [String] = []
         var denied = false
-        for pid in pids where pid > 1 && pid != getpid() {
+        for pid in pids {
+            if pid <= 1 {
+                failed.append("\(ProcessMonitor.name(pid)) (\(pid)) – systémový proces")
+                continue
+            }
+            if pid == getpid() {
+                failed.append("MacMetrix (\(pid)) – sám sebe neukončí, použijte Ukončit MacMetrix")
+                continue
+            }
+            if let expected = paths[pid], ResourceSampler.path(pid) != expected {
+                failed.append("\((expected as NSString).lastPathComponent) (\(pid)) – mezitím skončil")
+                continue
+            }
             if let app = NSRunningApplication(processIdentifier: pid), app.bundleIdentifier != nil {
                 if force ? app.forceTerminate() : app.terminate() { continue }
             }
@@ -131,22 +172,25 @@ final class ResourceSampler: @unchecked Sendable {
         var processes: [ProcessRow]
         var connections: [NetConnection]
         var listening: [ListeningPort]
+        var files: [OpenFile]
     }
 
     private var prevTime: TimeInterval?
     private var prevDisk: [Int32: (UInt64, UInt64)] = [:]
+    private var prevPageins: [Int32: UInt64] = [:]
     private var prevNet: [Int32: (UInt64, UInt64)] = [:]
     private var prevSockets: [String: (UInt64, UInt64)] = [:]
     /// pid → (ps comm, display name, path). Keyed by comm too, because pids get reused.
     private var names: [Int32: (comm: String, name: String, path: String?)] = [:]
 
-    func sample() -> Sample {
+    func sample(files collectFiles: Bool) -> Sample {
         let now = ProcessInfo.processInfo.systemUptime
         let dt = prevTime.map { now - $0 } ?? 0
         let ps = Self.ps()
         let net = Self.nettop()
 
         var disk: [Int32: (UInt64, UInt64)] = [:]
+        var pageins: [Int32: UInt64] = [:]
         var rows: [ProcessRow] = []
         rows.reserveCapacity(ps.count)
         var seen = Set<Int32>()
@@ -164,6 +208,13 @@ final class ResourceSampler: @unchecked Sendable {
                 $0.withMemoryRebound(to: rusage_info_t?.self, capacity: 1) { proc_pid_rusage(p.pid, RUSAGE_INFO_V4, $0) }
             }
             if r == 0 {
+                row.footprint = Int64(info.ri_phys_footprint)
+                row.maxFootprint = Int64(info.ri_lifetime_max_phys_footprint)
+                pageins[p.pid] = info.ri_pageins
+                row.pageins = 0
+                if let prev = prevPageins[p.pid], dt > 0, info.ri_pageins >= prev {
+                    row.pageins = Double(info.ri_pageins - prev) / dt
+                }
                 let c = (info.ri_diskio_bytesread, info.ri_diskio_byteswritten)
                 disk[p.pid] = c
                 if let prev = prevDisk[p.pid], dt > 0 {
@@ -216,14 +267,22 @@ final class ResourceSampler: @unchecked Sendable {
 
         prevTime = now
         prevDisk = disk
+        prevPageins = pageins
         prevNet = net.totals
         prevSockets = sockets
         return Sample(processes: rows, connections: connections,
-                      listening: ports.values.sorted { ($0.port, $0.pid) < ($1.port, $1.pid) })
+                      listening: ports.values.sorted { ($0.port, $0.pid) < ($1.port, $1.pid) },
+                      files: collectFiles ? rows.flatMap { Self.openFiles($0.pid, name: $0.name) } : [])
     }
 
     /// App bundle name for apps ("Microsoft Teams"), the executable's full name otherwise
     /// (`ps` and `nettop` cut names to 15–16 characters).
+    /// Executable path of a running process, nil when it no longer exists.
+    static func path(_ pid: Int32) -> String? {
+        var buf = [CChar](repeating: 0, count: 4096)
+        return proc_pidpath(pid, &buf, UInt32(buf.count)) > 0 ? String(cString: buf) : nil
+    }
+
     private func displayName(_ pid: Int32, comm: String) -> (String, String?) {
         if let cached = names[pid], cached.comm == comm { return (cached.name, cached.path) }
         var buf = [CChar](repeating: 0, count: 4096)
@@ -261,6 +320,49 @@ final class ResourceSampler: @unchecked Sendable {
         case "LastAck", "Closing": "Zavírá se"
         case "Closed": "Zavřeno"
         default: s
+        }
+    }
+
+    // MARK: - Open files
+
+    /// Working directory and every vnode the process has open. Only processes of the current user
+    /// are readable; scanning all of them takes ~10–20 ms.
+    static func openFiles(_ pid: Int32, name: String) -> [OpenFile] {
+        let size = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, nil, 0)
+        guard size > 0 else { return [] }
+        var result: [OpenFile] = []
+        var cwd = proc_vnodepathinfo()
+        if proc_pidinfo(pid, PROC_PIDVNODEPATHINFO, 0, &cwd, Int32(MemoryLayout<proc_vnodepathinfo>.size)) > 0 {
+            let path = cString(cwd.pvi_cdir.vip_path)
+            if !path.isEmpty && path != "/" {
+                result.append(OpenFile(id: "\(pid)|cwd", pid: pid, name: name, fd: -1, path: path, kind: .cwd, mode: ""))
+            }
+        }
+        // Room for a few more descriptors opened between the two calls.
+        var fds = [proc_fdinfo](repeating: proc_fdinfo(), count: Int(size) / MemoryLayout<proc_fdinfo>.size + 16)
+        let got = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, &fds, Int32(fds.count * MemoryLayout<proc_fdinfo>.size))
+        guard got > 0 else { return result }
+        for fd in fds.prefix(Int(got) / MemoryLayout<proc_fdinfo>.size) where fd.proc_fdtype == UInt32(PROX_FDTYPE_VNODE) {
+            var vi = vnode_fdinfowithpath()
+            guard proc_pidfdinfo(pid, fd.proc_fd, PROC_PIDFDVNODEPATHINFO, &vi,
+                                 Int32(MemoryLayout<vnode_fdinfowithpath>.size)) > 0 else { continue }
+            let path = cString(vi.pvip.vip_path)
+            // /dev/null is open in nearly every process and only adds noise.
+            guard !path.isEmpty, path != "/dev/null" else { continue }
+            let type = vi.pvip.vip_vi.vi_stat.vst_mode & S_IFMT
+            let kind: OpenFile.Kind = type == S_IFDIR ? .folder : (type == S_IFCHR || type == S_IFBLK) ? .device : .file
+            // Kernel FREAD = 1, FWRITE = 2 (not exported to user space).
+            let flags = vi.pfi.fi_openflags
+            let mode = flags & 3 == 3 ? "čtení i zápis" : flags & 2 != 0 ? "zápis" : "čtení"
+            result.append(OpenFile(id: "\(pid)|\(fd.proc_fd)|\(path)", pid: pid, name: name, fd: fd.proc_fd, path: path,
+                                   kind: kind, mode: mode))
+        }
+        return result
+    }
+
+    private static func cString<T>(_ tuple: T) -> String {
+        withUnsafeBytes(of: tuple) { raw in
+            String(decoding: raw.prefix { $0 != 0 }, as: UTF8.self)
         }
     }
 
@@ -311,10 +413,14 @@ final class ResourceSampler: @unchecked Sendable {
         var sockets: [Socket] = []
         var current: (pid: Int32, name: String)?
         for line in out.split(separator: "\n").dropFirst() {
+            // "<name>,<state>,<in>,<out>," – the name itself may contain commas ("Foo, Inc."), so the
+            // columns are taken from the end and everything before them is the name.
             let cols = line.split(separator: ",", omittingEmptySubsequences: false)
-            guard cols.count >= 4 else { continue }
-            let first = cols[0]
-            let bytesIn = UInt64(cols[2]) ?? 0, bytesOut = UInt64(cols[3]) ?? 0
+            guard cols.count >= 5 else { continue }
+            let n = cols.count
+            let first = cols[..<(n - 4)].joined(separator: ",")[...]
+            let state = cols[n - 4]
+            let bytesIn = UInt64(cols[n - 3]) ?? 0, bytesOut = UInt64(cols[n - 2]) ?? 0
             if let space = first.firstIndex(of: " "), first.contains("<->") {
                 guard let proc = current else { continue }
                 let kind = first[..<space]
@@ -323,11 +429,14 @@ final class ResourceSampler: @unchecked Sendable {
                 let v6 = kind.hasSuffix("6")
                 sockets.append(Socket(pid: proc.pid, name: proc.name, proto: kind.hasPrefix("tcp") ? "TCP" : "UDP",
                                       family: v6 ? "IPv6" : "IPv4", local: endpoint(ends[0], v6: v6),
-                                      remote: endpoint(ends[1], v6: v6), state: String(cols[1]),
+                                      remote: endpoint(ends[1], v6: v6), state: String(state),
                                       bytesIn: bytesIn, bytesOut: bytesOut))
             } else if let dot = first.lastIndex(of: "."), let pid = Int32(first[first.index(after: dot)...]) {
                 current = (pid, String(first[..<dot]))
                 totals[pid] = (bytesIn, bytesOut)
+            } else {
+                // A process line we can't read: its sockets must not end up under the previous process.
+                current = nil
             }
         }
         return (totals, sockets)

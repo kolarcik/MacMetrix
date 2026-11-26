@@ -425,7 +425,7 @@ private struct CoreBars: View {
 }
 
 /// Stacked bar of RAM composition: app, wired, compressed, cached, free.
-private struct MemoryBar: View {
+struct MemoryBar: View {
     var s: MetricsSnapshot
     var body: some View {
         let parts: [(UInt64, Color)] = [

@@ -31,7 +31,11 @@ MacMetrix ukazuje ve stavové liště, v oknech a ve widgetech na ploše vytíž
   a nejaktivnější procesy. CPU i s teplotou čipu, Disk s teplotou SSD.
 - **Monitor prostředků** – jako ve Windows: všechny procesy s CPU, vlákny, pamětí, diskem a sítí
   (řazení podle sloupců, hledání) a záložka *Síť* s provozem procesů, TCP spojeními
-  a naslouchajícími porty. Procesy vybrané v *Přehledu* filtrují záložku *Síť*.
+  a naslouchajícími porty. Záložka *Paměť* ukazuje rozložení fyzické paměti (aplikace,
+  pevně alokovaná, komprimovaná, mezipaměť, volná), tlak paměti a u procesů skutečnou spotřebu
+  (footprint jako v Monitoru aktivity), její špičku a stránky načtené z disku. Záložka *Soubory*
+  ukáže otevřené soubory a složky vybraných procesů nebo hledá podle cesty – třeba kdo brání
+  vysunutí disku. Procesy vybrané v *Přehledu* nebo *Paměti* filtrují záložky *Síť* a *Soubory*.
   Z kontextové nabídky jde proces ukončit, vynutit jeho ukončení nebo ho zobrazit ve Finderu.
   Vpravo jsou grafy za 1 minutu, 5 minut nebo hodinu: CPU, **historie každého jádra**
   (efektivní E a výkonná P zvlášť), paměť, disk, síť a GPU.
@@ -120,7 +124,8 @@ Pro instalaci na vzdálené Macy přes `scp` / SSH je k dispozici ZIP s instala�
 Ukazatel sítě je vztažený k 1 Gbit/s (125 MB/s). Procesy se čtou přes `ps`, síťové
 procesy přes `nettop`, diskové přes `proc_pid_rusage` (jen procesy přihlášeného uživatele).
 Monitor prostředků bere spojení a porty z `nettop` (vidí i systémové procesy); počet vláken a disk
-zná jen u procesů přihlášeného uživatele, u ostatních ukazuje „–“. Měří jen při otevřeném okně.
+zná jen u procesů přihlášeného uživatele, u ostatních ukazuje „–“. Totéž platí pro footprint
+paměti (`proc_pid_rusage`) a otevřené soubory (`proc_pidinfo` / `proc_pidfdinfo`). Měří jen při otevřeném okně.
 
 ## Řešení potíží
 
