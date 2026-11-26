@@ -29,22 +29,23 @@ MacMetrix ukazuje ve stavové liště, v oknech a ve widgetech na ploše vytíž
 - **Miniatura grafu** za každým ukazatelem (volitelně) – posledních 40 měření v barvě metriky.
 - **Okno každé metriky** po kliknutí na její ikonu: ukazatele, historie, detaily
   a nejaktivnější procesy. CPU i s teplotou čipu, Disk s teplotou SSD.
+- **Monitor prostředků** – jako ve Windows: všechny procesy s CPU, vlákny, pamětí, diskem a sítí
+  (řazení podle sloupců, hledání) a záložka *Síť* s provozem procesů, TCP spojeními
+  a naslouchajícími porty. Procesy vybrané v *Přehledu* filtrují záložku *Síť*.
+  Z kontextové nabídky jde proces ukončit, vynutit jeho ukončení nebo ho zobrazit ve Finderu.
+  Vpravo jsou grafy za 1 minutu, 5 minut nebo hodinu: CPU, **historie každého jádra**
+  (efektivní E a výkonná P zvlášť), paměť, disk, síť a GPU.
 - **Úklid disku** – průvodce najde DerivedData, podporu zařízení, nedostupné simulátory,
   cache SPM/CocoaPods/NuGet/npm/Homebrew/Gradle, bin/obj a .build v projektech, staré
   dočasné soubory a logy. Nejdřív ukáže velikosti a nechá vybrat kategorie; mazat jde
   trvale nebo do Koše.
 - **Baterie** (jen na MacBooku) – nabití, stav a zbývající čas, příkon systému, kondice, cykly
   a teplota baterie. Na Macu bez baterie se ukazatel nezobrazuje.
-- **Dashboard** – velké ukazatele, grafy za 5 minut a hodinu a vytížení jednotlivých jader CPU.
 - **Widgety na plochu** (malý / střední / velký) s historií za poslední hodinu.
 - **Světlý a tmavý motiv** oken – podle systému (výchozí) nebo podle volby v Nastavení.
 - **Spouštění po přihlášení**, okno O aplikaci, Nastavení v samostatném okně.
 
 ## Snímky obrazovky
-
-**Dashboard** – všechny metriky na jednom místě, grafy za 5 minut nebo hodinu a vytížení jader CPU.
-
-![Dashboard](docs/screenshots/dashboard.png)
 
 <table>
   <tr>
@@ -96,11 +97,12 @@ Pro instalaci na vzdálené Macy přes `scp` / SSH je k dispozici ZIP s instala�
 ## Ovládání
 
 - **Klik na ukazatel** ve stavové liště otevře okno metriky; otevřené okno jiné metriky se zavře.
-- Ve spodní liště okna jsou tlačítka **Dashboard**, **O aplikaci**, **Nastavení** a **Ukončit**.
+- Ve spodní liště okna jsou tlačítka **Monitor prostředků**, **O aplikaci**, **Nastavení** a **Ukončit**.
 - **Nastavení:** motiv oken (podle systému, světlý, tmavý), spouštění po přihlášení, interval měření, interval obnovení widgetu,
   které ukazatele zobrazit, jejich vzhled a miniatura grafu.
 - **⌘ + tažení** ukazatele přeskládá pořadí; vytažením ze stavové lišty se ukazatel odebere.
   Když není vybraný žádný, zobrazí se jen ikona aplikace.
+- **Monitor prostředků** se otevře tlačítkem *Monitor prostředků* ve spodní liště okna.
 - **Úklid disku** se otevře z okna Disku tlačítkem *Uvolnit místo na disku…*
 - **Widget** přidáte pravým klikem na plochu → *Upravit widgety* → MacMetrix.
 
@@ -117,6 +119,8 @@ Pro instalaci na vzdálené Macy přes `scp` / SSH je k dispozici ZIP s instala�
 
 Ukazatel sítě je vztažený k 1 Gbit/s (125 MB/s). Procesy se čtou přes `ps`, síťové
 procesy přes `nettop`, diskové přes `proc_pid_rusage` (jen procesy přihlášeného uživatele).
+Monitor prostředků bere spojení a porty z `nettop` (vidí i systémové procesy); počet vláken a disk
+zná jen u procesů přihlášeného uživatele, u ostatních ukazuje „–“. Měří jen při otevřeném okně.
 
 ## Řešení potíží
 
@@ -125,7 +129,7 @@ Aplikace v nastaveném intervalu (výchozí 10 s) zapíše data do sdíleného A
 kontejneru a požádá WidgetKit o obnovení. **macOS ale obnovování widgetů omezuje**,
 takže widget nemusí být aktuální na sekundu – ukazuje čas posledního měření. Kdy se
 widget naposledy obnovil, je vidět v Nastavení. Pro živá data slouží okna metrik
-a dashboard. Když aplikace neběží, widget si změří hodnoty sám (bez historie).
+a Monitor prostředků. Když aplikace neběží, widget si změří hodnoty sám (bez historie).
 
 Po instalaci nové verze může běžet stará widget extension. Pomůže:
 
@@ -163,8 +167,8 @@ Podepisuje se certifikátem **Developer ID Application** týmu `3ZN9TSG9S7`
 takže nepotřebuje provisioning profil.
 
 ```
-App/       aplikace ve stavové liště: ukazatele, okna metrik, dashboard, úklid disku,
-           nastavení, O aplikaci, teplotní senzory, procesy
+App/       aplikace ve stavové liště: ukazatele, okna metrik, Monitor prostředků,
+           úklid disku, nastavení, O aplikaci, teplotní senzory, procesy
 Widget/    WidgetKit extension
 Shared/    měření metrik, sdílený stav, společné SwiftUI komponenty (ukazatele, grafy)
 scripts/

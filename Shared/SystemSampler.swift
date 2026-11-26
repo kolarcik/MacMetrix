@@ -73,7 +73,9 @@ struct MetricsSnapshot: Codable, Hashable {
         s.cpu = avg(\.cpu)
         s.cpuUser = avg(\.cpuUser)
         s.cpuSystem = avg(\.cpuSystem)
-        s.cores = []
+        // Per-core history for the Resource Monitor's hour view; samples with another core count are skipped.
+        let cores = items.map(\.cores).filter { $0.count == last.cores.count }
+        s.cores = last.cores.indices.map { i in cores.reduce(0) { $0 + $1[i] } / Double(max(cores.count, 1)) }
         s.gpu = gpus.isEmpty ? nil : gpus.reduce(0, +) / Double(gpus.count)
         s.memUsed = avgU(\.memUsed)
         s.memCompressed = avgU(\.memCompressed)

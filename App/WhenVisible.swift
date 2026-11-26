@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Shows `content` only while its window is actually visible on screen.
 ///
-/// SwiftUI keeps closed windows (dashboard, settings) and hidden menu bar popovers alive, and their
+/// SwiftUI keeps closed windows (Resource Monitor, settings) and hidden menu bar popovers alive, and their
 /// views keep re-rendering on every sample even though nobody sees them. While the window is hidden
 /// or fully covered, this keeps just an empty placeholder of the same size, so nothing observes the
 /// store. When the window shows up again, the content is created anew.

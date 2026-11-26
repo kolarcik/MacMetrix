@@ -102,7 +102,7 @@ final class ProcessMonitor: ObservableObject {
 
     // MARK: - Sources
 
-    nonisolated private static func run(_ path: String, _ args: [String]) -> String {
+    nonisolated static func run(_ path: String, _ args: [String]) -> String {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: path)
         p.arguments = args
@@ -160,7 +160,7 @@ final class ProcessMonitor: ObservableObject {
         return result
     }
 
-    nonisolated private static func name(_ pid: Int32) -> String {
+    nonisolated static func name(_ pid: Int32) -> String {
         var buf = [CChar](repeating: 0, count: 1024)
         if proc_name(pid, &buf, UInt32(buf.count)) > 0 { return String(cString: buf) }
         return "pid \(pid)"

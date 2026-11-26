@@ -84,7 +84,7 @@ final class HiddenBySystem: ObservableObject {
     @Published var metrics: Set<Metric> = []
 }
 
-/// Menu bar app: closing the last popover / dashboard window must never quit it.
+/// Menu bar app: closing the last popover / window must never quit it.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
@@ -158,10 +158,10 @@ struct MacMetrixApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Window("MacMetrix", id: "dashboard") {
-            WhenVisible { DashboardView().environmentObject(store) }
+        Window("Monitor prostředků", id: "resources") {
+            WhenVisible { ResourceMonitorView().environmentObject(store) }
         }
-        .defaultSize(width: 820, height: 780)
+        .defaultSize(width: 1320, height: 800)
 
         Window("Úklid disku", id: "cleanup") {
             CleanupView()

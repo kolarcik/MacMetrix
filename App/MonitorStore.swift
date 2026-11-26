@@ -6,7 +6,7 @@ import ServiceManagement
 @MainActor
 final class MonitorStore: ObservableObject {
     @Published private(set) var current: MetricsSnapshot = .empty
-    /// Fine-grained history for the popover / dashboard (one point per sample).
+    /// Fine-grained history for the popover / Resource Monitor (one point per sample).
     @Published private(set) var history: [MetricsSnapshot] = []
     /// Per-minute averages (last hour) – also shared with the widget.
     @Published private(set) var minuteHistory: [MetricsSnapshot] = []

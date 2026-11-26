@@ -183,11 +183,14 @@ struct Sparkline: View {
     var outColor: Color = .teal
     var autoScale = false
     var showAxis = false
+    /// Time labels under the chart; narrow charts show only the value axis.
+    var showTimeAxis = true
 
-    init(history: [MetricsSnapshot], metric: Metric, showAxis: Bool = false) {
+    init(history: [MetricsSnapshot], metric: Metric, showAxis: Bool = false, showTimeAxis: Bool = true) {
         color = metric.inColor
         outColor = metric.outColor
         self.showAxis = showAxis
+        self.showTimeAxis = showTimeAxis
         switch metric {
         case .net, .disk:
             autoScale = true
@@ -225,7 +228,7 @@ struct Sparkline: View {
             }
         }
         .chartYScale(domain: autoScale ? 0...max(points.map(\.value).max() ?? 1, 1024) : 0...1)
-        .chartXAxis(showAxis ? .automatic : .hidden)
+        .chartXAxis(showAxis && showTimeAxis ? .automatic : .hidden)
         .chartYAxis {
             if showAxis {
                 AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { v in

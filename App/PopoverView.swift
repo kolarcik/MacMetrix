@@ -32,17 +32,18 @@ struct PopoverView: View {
     }
 }
 
-/// Dashboard / settings / quit row shared by every popover. Dashboard and settings open in their own windows.
+/// Resource Monitor / about / settings / quit row shared by every popover. These open in their own windows.
 struct PopoverFooter: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         HStack {
             Button {
-                open("dashboard")
+                open("resources")
             } label: {
-                Label("Dashboard", systemImage: "rectangle.3.group")
+                Label("Monitor prostředků", systemImage: "chart.xyaxis.line")
             }
+            .help("Všechny procesy, síťová spojení a porty, grafy CPU, jader, paměti, disku a sítě")
             Spacer()
             Button {
                 open("about")
