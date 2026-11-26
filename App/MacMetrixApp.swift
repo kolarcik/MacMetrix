@@ -316,19 +316,27 @@ enum StatusImage {
 
     // MARK: Battery
 
-    /// Battery outline in the menu bar's text color, filled with a colored bar for the charge level
-    /// (mint, yellow under 20 %, red under 10 %) and a bolt while charging. Colored, so not a template:
-    /// the outline takes `labelColor` while drawing, which follows the light or dark menu bar.
+    /// Charge percentage followed by a battery outline in the menu bar's text color, filled with a colored
+    /// bar for the charge level (mint, yellow under 20 %, red under 10 %) and a bolt while charging.
+    /// Colored, so not a template: text and outline take `labelColor` while drawing, which follows the
+    /// light or dark menu bar. The text field is as wide as "100%", so the icon doesn't move.
     static func battery(_ s: MetricsSnapshot) -> NSImage {
         let bodySize = NSSize(width: 23, height: 11.5)
         let capSize = NSSize(width: 1.8, height: 4.5)
-        let size = NSSize(width: ceil(bodySize.width + capSize.width + 1.5), height: height)
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 12.5, weight: .medium)
+        let textWidth = width("100%", font), gap: CGFloat = 4
+        let iconX = textWidth + gap
+        let size = NSSize(width: ceil(iconX + bodySize.width + capSize.width + 1.5), height: height)
+        let percent = s.battery.map { Fmt.percent($0.level) } ?? "–"
         let level = min(max(s.battery?.level ?? 0, 0), 1)
         let charging = s.battery?.charging == true
         let fill = NSColor(Metric.battery.strokeColor(level))
 
         let img = NSImage(size: size, flipped: false) { _ in
-            let body = NSRect(x: 0.5, y: ((height - bodySize.height) / 2).rounded() + 0.5,
+            let text = NSAttributedString(string: percent, attributes: [.font: font, .foregroundColor: NSColor.labelColor])
+            text.draw(at: NSPoint(x: textWidth - text.size().width, y: centeredBaseline(font) + font.descender))
+
+            let body = NSRect(x: iconX + 0.5, y: ((height - bodySize.height) / 2).rounded() + 0.5,
                               width: bodySize.width, height: bodySize.height)
             let outline = NSBezierPath(roundedRect: body, xRadius: 3.2, yRadius: 3.2)
             outline.lineWidth = 1
