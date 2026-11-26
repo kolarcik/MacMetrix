@@ -64,7 +64,7 @@ final class ProcessMonitor: ObservableObject {
             var interfaces: [(String, String)] = []
             let now = ProcessInfo.processInfo.systemUptime
             switch metric {
-            case .cpu:
+            case .cpu, .battery: // battery: CPU-heavy processes drain it the most
                 result = Self.ps(column: "pcpu").map { ProcessUsage(pid: $0.pid, name: $0.name, value: $0.value) }
             case .ram:
                 result = Self.ps(column: "rss").map { ProcessUsage(pid: $0.pid, name: $0.name, value: $0.value * 1024) }
@@ -86,7 +86,7 @@ final class ProcessMonitor: ObservableObject {
             }
             var sorted = Array(result.sorted { $0.value + $0.secondary > $1.value + $1.secondary }.prefix(Self.limit))
             if DemoMode.isOn {
-                let names = DemoMode.processNames(cpu: metric == .cpu, ram: metric == .ram, net: metric == .net)
+                let names = DemoMode.processNames(cpu: metric == .cpu || metric == .battery, ram: metric == .ram, net: metric == .net)
                 sorted = sorted.enumerated().map { i, p in
                     ProcessUsage(pid: Int32(-1 - i), name: names[i % names.count], value: p.value, secondary: p.secondary)
                 }

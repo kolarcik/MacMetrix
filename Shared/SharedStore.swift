@@ -58,6 +58,10 @@ enum SharedStore {
 }
 
 enum Fmt {
+    static func watts(_ w: Double) -> String {
+        w < 10 ? String(format: "%.1f W", w) : "\(Int(w.rounded())) W"
+    }
+
     static func percent(_ v: Double?) -> String {
         guard let v else { return "–" }
         return "\(Int((v * 100).rounded()))%"

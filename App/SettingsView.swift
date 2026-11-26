@@ -55,7 +55,7 @@ struct SettingsView: View {
             }
 
             Section {
-                ForEach(Metric.allCases) { m in
+                ForEach(Metric.available) { m in
                     Toggle(isOn: metricBinding(m)) {
                         Label(m.longTitle, systemImage: m.symbol)
                     }

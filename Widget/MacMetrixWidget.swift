@@ -67,7 +67,10 @@ struct MacMetrixWidgetView: View {
             title
             Grid(horizontalSpacing: 8, verticalSpacing: 6) {
                 GridRow { gauge(.cpu); gauge(.gpu); gauge(.ram) }
-                GridRow { gauge(.disk); gauge(.net); Color.clear }
+                GridRow {
+                    gauge(.disk); gauge(.net)
+                    if Metric.available.contains(.battery) { gauge(.battery) } else { Color.clear }
+                }
             }
         }
     }
@@ -76,7 +79,7 @@ struct MacMetrixWidgetView: View {
         VStack(spacing: 6) {
             title
             HStack(spacing: 10) {
-                ForEach(Metric.allCases) { m in
+                ForEach(Metric.available) { m in
                     VStack(spacing: 4) {
                         gauge(m)
                         if entry.history.count > 1 {
@@ -91,9 +94,10 @@ struct MacMetrixWidgetView: View {
     private var large: some View {
         VStack(alignment: .leading, spacing: 8) {
             title
-            ForEach(Metric.allCases) { m in
+            ForEach(Metric.available) { m in
                 HStack(spacing: 10) {
-                    RingGauge(value: m.fraction(entry.snapshot), color: m.color, label: "", lineWidth: 5)
+                    RingGauge(value: m.fraction(entry.snapshot), color: m.color, label: "", lineWidth: 5,
+                              stroke: m.strokeColor(m.fraction(entry.snapshot)))
                         .frame(width: 30, height: 30)
                     VStack(alignment: .leading, spacing: 0) {
                         Text(m.title).font(.caption).foregroundStyle(.secondary)
@@ -118,7 +122,7 @@ struct MacMetrixWidgetView: View {
         VStack(spacing: 2) {
             RingGauge(value: m.fraction(entry.snapshot), color: m.color,
                       label: m.ringLabel(entry.snapshot),
-                      lineWidth: 5)
+                      lineWidth: 5, stroke: m.strokeColor(m.fraction(entry.snapshot)))
             Text(m.title).font(.system(size: 9, weight: .medium)).foregroundStyle(.secondary)
         }
     }
@@ -131,6 +135,7 @@ struct MacMetrixWidgetView: View {
         case .ram: return "\(Fmt.gb(s.memUsed)) / \(Fmt.gb(s.memTotal))"
         case .disk: return "R \(Fmt.rate(s.diskRead)) W \(Fmt.rate(s.diskWrite))"
         case .net: return "IN \(Fmt.rate(s.netIn)) · OUT \(Fmt.rate(s.netOut))"
+        case .battery: return s.battery?.summary ?? ""
         }
     }
 }

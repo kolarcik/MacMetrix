@@ -18,7 +18,7 @@ struct MetricDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             header
             gauges
-            SectionHeader("Historie použití")
+            SectionHeader(metric == .battery ? "Historie nabití" : "Historie použití")
             history
             SectionHeader("Detaily")
             details
@@ -41,7 +41,7 @@ struct MetricDetailView: View {
 
     private var header: some View {
         HStack {
-            Image(systemName: metric.symbol).foregroundStyle(metric.color)
+            Image(systemName: metric.symbol(for: s)).foregroundStyle(metric.color)
             Spacer()
             Text(metric.longTitle).font(.headline)
             Spacer()
@@ -54,7 +54,8 @@ struct MetricDetailView: View {
         return HStack(alignment: .center) {
             SmallGauge(gauge: left)
             Spacer()
-            RingGauge(value: metric.fraction(s), color: metric.color, label: metric.ringLabel(s), lineWidth: 8)
+            RingGauge(value: metric.fraction(s), color: metric.color, label: metric.ringLabel(s), lineWidth: 8,
+                      stroke: metric.strokeColor(metric.fraction(s)))
                 .frame(width: 92, height: 92)
             Spacer()
             SmallGauge(gauge: right)
@@ -86,6 +87,14 @@ struct MetricDetailView: View {
         case .net:
             return (GaugeSpec(caption: "Stahování", value: s.netIn / peak(\.netIn), label: Fmt.shortRate(s.netIn), color: Metric.net.inColor),
                     GaugeSpec(caption: "Odesílání", value: s.netOut / peak(\.netOut), label: Fmt.shortRate(s.netOut), color: Metric.net.outColor))
+        case .battery:
+            let b = s.battery
+            let watts = b?.systemPower ?? b?.batteryPower.map(abs)
+            // Power draw relative to the adapter (or a typical 60 W when on battery).
+            let scale = Double(b?.adapterWatts ?? 60)
+            return (GaugeSpec(caption: "Kondice", value: b?.health ?? 0, label: Fmt.percent(b?.health), color: .green,
+                              stroke: (b?.health ?? 1) < 0.8 ? .orange : .green),
+                    GaugeSpec(caption: "Příkon", value: (watts ?? 0) / scale, label: watts.map(Fmt.watts) ?? "–", color: .orange))
         }
     }
 
@@ -160,6 +169,19 @@ struct MetricDetailView: View {
             DetailRow("Odesílání", Fmt.rate(s.netOut), dot: Metric.net.outColor)
             DetailRow("Přijato od startu", s.netInTotal.map(Fmt.bytes) ?? "–")
             DetailRow("Odesláno od startu", s.netOutTotal.map(Fmt.bytes) ?? "–")
+        case .battery:
+            if let b = s.battery {
+                DetailRow("Nabití", Fmt.percent(b.level), dot: Metric.battery.strokeColor(b.level))
+                DetailRow("Stav", b.stateText)
+                if let t = b.remainingText {
+                    DetailRow(b.charging ? "Do plného nabití" : "Zbývá", t)
+                } else if !b.onAC {
+                    DetailRow("Zbývá", "Počítám…")
+                }
+                DetailRow("Zdroj napájení", b.onAC ? (b.adapterWatts.map { "Adaptér \($0) W" } ?? "Adaptér") : "Baterie")
+            } else {
+                DetailRow("Baterie", "Nedostupná")
+            }
         }
     }
 
@@ -186,6 +208,18 @@ struct MetricDetailView: View {
             }
             .controlSize(.large)
             .padding(.top, 4)
+        case .battery:
+            if let b = s.battery {
+                SectionHeader("Napájení")
+                if let w = b.systemPower { DetailRow("Příkon systému", Fmt.watts(w), dot: .orange) }
+                if let w = b.batteryPower {
+                    DetailRow(w >= 0 ? "Nabíjení baterie" : "Vybíjení baterie", Fmt.watts(abs(w)), dot: w >= 0 ? .green : .red)
+                }
+                SectionHeader("Stav baterie")
+                DetailRow("Kondice", Fmt.percent(b.health), dot: .green)
+                DetailRow("Cykly", b.cycles.map(String.init) ?? "–")
+                if let t = b.temperature { DetailRow("Teplota", Fmt.temp(t), dot: .orange) }
+            }
         case .net:
             SectionHeader("Rozhraní")
             if procs.interfaces.isEmpty {
@@ -247,6 +281,9 @@ struct MetricDetailView: View {
             if metric == .disk {
                 Text("Jen procesy přihlášeného uživatele.").font(.caption2).foregroundStyle(.tertiary)
             }
+            if metric == .battery {
+                Text("Podle zatížení procesoru – ty baterii vybíjejí nejvíc.").font(.caption2).foregroundStyle(.tertiary)
+            }
         }
     }
 
@@ -256,13 +293,14 @@ struct MetricDetailView: View {
         case .ram: "Paměť"
         case .disk: "Čtení / zápis"
         case .net: "↓ / ↑"
+        case .battery: "CPU"
         case .gpu: ""
         }
     }
 
     private func processValue(_ p: ProcessUsage) -> String {
         switch metric {
-        case .cpu: String(format: "%.1f%%", p.value)
+        case .cpu, .battery: String(format: "%.1f%%", p.value)
         case .ram: Fmt.bytes(UInt64(p.value))
         case .disk, .net: "\(Fmt.shortRate(p.value)) / \(Fmt.shortRate(p.secondary))"
         case .gpu: ""
@@ -284,6 +322,7 @@ extension Metric {
         case .ram: "Paměť"
         case .disk: "Disk"
         case .net: "Síť"
+        case .battery: "Baterie"
         }
     }
 }
@@ -307,13 +346,15 @@ struct GaugeSpec {
     var value: Double
     var label: String
     var color: Color
+    /// Fixed arc color; nil = turns yellow / red at high values.
+    var stroke: Color? = nil
 }
 
 private struct SmallGauge: View {
     var gauge: GaugeSpec
     var body: some View {
         VStack(spacing: 4) {
-            RingGauge(value: gauge.value, color: gauge.color, label: gauge.label, lineWidth: 5)
+            RingGauge(value: gauge.value, color: gauge.color, label: gauge.label, lineWidth: 5, stroke: gauge.stroke)
                 .frame(width: 58, height: 58)
             Text(gauge.caption).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
         }

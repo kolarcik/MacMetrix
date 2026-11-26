@@ -22,11 +22,21 @@ enum MenuBarMetrics {
 
     static func decode(_ raw: String) -> [Metric] {
         let set = Set(raw.split(separator: ",").map(String.init))
-        return Metric.allCases.filter { set.contains($0.rawValue) }
+        return Metric.available.filter { set.contains($0.rawValue) }
     }
 
     static func encode(_ metrics: [Metric]) -> String {
         metrics.map(\.rawValue).joined(separator: ",")
+    }
+
+    /// The battery metric came in 1.1: show it once to users whose saved selection predates it.
+    static func addBatteryOnce() {
+        let flag = "didAddBatteryMetric"
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: flag) else { return }
+        defaults.set(true, forKey: flag)
+        guard Battery.isPresent, let raw = defaults.string(forKey: key), !raw.split(separator: ",").contains("battery") else { return }
+        defaults.set(raw.isEmpty ? Metric.battery.rawValue : raw + ",battery", forKey: key)
     }
 
     /// Something must always stay in the menu bar, otherwise the app can't be reached.
@@ -87,10 +97,15 @@ struct MacMetrixApp: App {
     @AppStorage(StatusImage.sparklineKey) private var showSparkline = false
     @ObservedObject private var hiddenBySystem = HiddenBySystem.shared
 
+    init() {
+        MenuBarMetrics.addBatteryOnce()
+    }
+
     var body: some Scene {
         // One independent status bar item per metric (SceneBuilder has no ForEach).
         // macOS places items right-to-left in declaration order, so declare them reversed
-        // to get CPU · GPU · RAM · Disk · Síť from left to right.
+        // to get CPU · GPU · RAM · Disk · Síť · Baterie from left to right.
+        metricItem(.battery)
         metricItem(.net)
         metricItem(.disk)
         metricItem(.ram)
@@ -217,8 +232,9 @@ enum StatusImage {
     private static func stacked(_ m: Metric, _ s: MetricsSnapshot) -> NSImage {
         let labelFont = NSFont.systemFont(ofSize: 8.5, weight: .medium)
         let valueFont = NSFont.monospacedDigitSystemFont(ofSize: 12.5, weight: .semibold)
-        let label = m.title.uppercased()
-        let w = max(width("100%", valueFont), width(label, labelFont))
+        // Battery: a bolt after the caption while charging; the width already counts with it.
+        let label = m.title.uppercased() + (m == .battery && s.battery?.charging == true ? " ⚡︎" : "")
+        let w = max(width("100%", valueFont), width(m.title.uppercased() + (m == .battery ? " ⚡︎" : ""), labelFont))
         return image(width: w) {
             draw(label, labelFont, x: 0, baseline: 14)
             draw(m.valueText(s), valueFont, x: 0, baseline: 2.5)
@@ -231,7 +247,7 @@ enum StatusImage {
     }
 
     private static func iconValue(_ m: Metric, _ s: MetricsSnapshot) -> NSImage {
-        let symbol = symbolImage(m)
+        let symbol = symbolImage(m, s)
         let gap: CGFloat = 3
         if m == .net {
             return image(width: symbol.size.width + gap + netBlockWidth) {
@@ -424,9 +440,9 @@ enum StatusImage {
         a.draw(at: NSPoint(x: px, y: baseline + font.descender))
     }
 
-    private static func symbolImage(_ m: Metric) -> NSImage {
+    private static func symbolImage(_ m: Metric, _ s: MetricsSnapshot) -> NSImage {
         let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
-        return NSImage(systemSymbolName: m.symbol, accessibilityDescription: m.title)?
+        return NSImage(systemSymbolName: m.symbol(for: s), accessibilityDescription: m.title)?
             .withSymbolConfiguration(config) ?? NSImage()
     }
 

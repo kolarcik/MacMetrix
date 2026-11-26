@@ -49,12 +49,12 @@ struct DashboardView: View {
             }
 
             HStack(spacing: 14) {
-                ForEach(Metric.allCases) { m in
+                ForEach(Metric.available) { m in
                     VStack(spacing: 6) {
                         RingGauge(value: m.fraction(store.current), color: m.color,
-                                  label: m.ringLabel(store.current), lineWidth: 9)
+                                  label: m.ringLabel(store.current), lineWidth: 9, stroke: m.strokeColor(m.fraction(store.current)))
                             .frame(width: 92, height: 92)
-                        Label(m.title, systemImage: m.symbol).font(.headline)
+                        Label(m.title, systemImage: m.symbol(for: store.current)).font(.headline)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -70,8 +70,13 @@ struct DashboardView: View {
                     chartCard(.net, data, subtitle: "")
                 }
                 GridRow {
-                    chartCard(.disk, data, subtitle: "\(Fmt.gb(store.current.diskUsed)) / \(Fmt.gb(store.current.diskTotal)) · čtení \(Fmt.rate(store.current.diskRead)) · zápis \(Fmt.rate(store.current.diskWrite))")
-                        .gridCellColumns(2)
+                    let disk = chartCard(.disk, data, subtitle: "\(Fmt.gb(store.current.diskUsed)) / \(Fmt.gb(store.current.diskTotal)) · čtení \(Fmt.rate(store.current.diskRead)) · zápis \(Fmt.rate(store.current.diskWrite))")
+                    if Metric.available.contains(.battery) {
+                        disk
+                        chartCard(.battery, data, subtitle: store.current.battery?.summary ?? "")
+                    } else {
+                        disk.gridCellColumns(2)
+                    }
                 }
             }
 
@@ -98,7 +103,7 @@ struct DashboardView: View {
     private func chartCard(_ m: Metric, _ data: [MetricsSnapshot], subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Label(m.title, systemImage: m.symbol).font(.headline).foregroundStyle(m.color)
+                Label(m.title, systemImage: m.symbol(for: store.current)).font(.headline).foregroundStyle(m.color)
                 Spacer()
                 if m == .net {
                     InOutLegend(metric: m, snapshot: store.current, font: .callout)

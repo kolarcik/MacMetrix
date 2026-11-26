@@ -7,7 +7,7 @@ struct PopoverView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
-            ForEach(Metric.allCases) { m in
+            ForEach(Metric.available) { m in
                 MetricRow(metric: m, snapshot: store.current, history: store.history)
             }
             Divider()
@@ -83,11 +83,11 @@ struct MetricRow: View {
     var body: some View {
         HStack(spacing: 10) {
             RingGauge(value: metric.fraction(snapshot), color: metric.color,
-                      label: metric.ringLabel(snapshot), lineWidth: 5)
+                      label: metric.ringLabel(snapshot), lineWidth: 5, stroke: metric.strokeColor(metric.fraction(snapshot)))
                 .frame(width: 46, height: 46)
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
-                    Label(metric.title, systemImage: metric.symbol).font(.subheadline.weight(.semibold))
+                    Label(metric.title, systemImage: metric.symbol(for: snapshot)).font(.subheadline.weight(.semibold))
                     Spacer()
                     if metric == .net {
                         InOutLegend(metric: metric, snapshot: snapshot)
@@ -113,6 +113,8 @@ struct MetricRow: View {
             "R \(Fmt.rate(snapshot.diskRead)) · W \(Fmt.rate(snapshot.diskWrite)) · \(Fmt.gb(snapshot.diskTotal - snapshot.diskUsed)) volno"
         case .net:
             "↓ \(Fmt.rate(snapshot.netIn))  ↑ \(Fmt.rate(snapshot.netOut))"
+        case .battery:
+            snapshot.battery?.summary ?? ""
         }
     }
 }

@@ -21,10 +21,12 @@
 		7CB86670AF4C9A4C4C594341 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 350488C62AC8DB4E9BDD696E /* DashboardView.swift */; };
 		7D2290EEB0738520FB8ABE26 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17DC8FED32A30D493F1D080 /* SharedStore.swift */; };
 		838FCCEA584DBC2BA486A7E6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7F22A3F2F63994A347A54195 /* Assets.xcassets */; };
+		8BBC3F3FD03C3667051DF008 /* Battery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 477BB0308C85B76EC5C99FC0 /* Battery.swift */; };
 		A400D9E0B7A350CC317169CD /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA00FD8B6BB4B5BDA1ECD5C9 /* AboutView.swift */; };
 		A67A294B455B0B101ED6A9BE /* CleanupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60F6879865401462F142585 /* CleanupView.swift */; };
 		B3B28F89257446DFE6F86919 /* ProcessMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D14A48DE36CA87116392802B /* ProcessMonitor.swift */; };
 		C19BB0DCB4E513661107E8BF /* MacMetrixWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7BA535540A605EF76A9B4A16 /* MacMetrixWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C2BC77ED73EE272178887B0D /* Battery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 477BB0308C85B76EC5C99FC0 /* Battery.swift */; };
 		D00D7E4762BBFD64B2102537 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17DC8FED32A30D493F1D080 /* SharedStore.swift */; };
 		D799B4FBD2A9A58F73EE33B9 /* MetricViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2965447E6B504781A65A7049 /* MetricViews.swift */; };
 		DF0A00CC93B47D6F50D33356 /* CreatorLogo.png in Resources */ = {isa = PBXBuildFile; fileRef = A4B7EF4FA70FDD53B1CB1CAE /* CreatorLogo.png */; };
@@ -68,6 +70,7 @@
 		3816B23FB75B2B478874CE4F /* DiskCleanup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskCleanup.swift; sourceTree = "<group>"; };
 		3BD9BD0CE505FFEE77BF10EF /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
 		3BDE714A7DA483E11604DC4C /* MacMetrixApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacMetrixApp.swift; sourceTree = "<group>"; };
+		477BB0308C85B76EC5C99FC0 /* Battery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Battery.swift; sourceTree = "<group>"; };
 		49C10511A5288CEC27F5CE3A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4A0A31939BB15044A41F2748 /* SystemSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSampler.swift; sourceTree = "<group>"; };
 		50F60B825524C59FFE964B2A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -101,6 +104,7 @@
 		B5040A92C0E476FF715F4FCD /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				477BB0308C85B76EC5C99FC0 /* Battery.swift */,
 				5BA04CD61933CDC23429C51F /* DemoMode.swift */,
 				2965447E6B504781A65A7049 /* MetricViews.swift */,
 				B17DC8FED32A30D493F1D080 /* SharedStore.swift */,
@@ -250,6 +254,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A400D9E0B7A350CC317169CD /* AboutView.swift in Sources */,
+				8BBC3F3FD03C3667051DF008 /* Battery.swift in Sources */,
 				A67A294B455B0B101ED6A9BE /* CleanupView.swift in Sources */,
 				7CB86670AF4C9A4C4C594341 /* DashboardView.swift in Sources */,
 				37BB6F758E3886EBA1A0FD0E /* DemoMode.swift in Sources */,
@@ -272,6 +277,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C2BC77ED73EE272178887B0D /* Battery.swift in Sources */,
 				30ED1CEFBEDCFE87E22A5D93 /* DemoMode.swift in Sources */,
 				218EAD16D63528D3206A1DFA /* MacMetrixWidget.swift in Sources */,
 				3E394541D3ED1EF40890A2D9 /* MetricViews.swift in Sources */,

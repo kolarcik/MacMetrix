@@ -2,8 +2,11 @@ import SwiftUI
 import Charts
 
 enum Metric: String, CaseIterable, Identifiable {
-    case cpu, gpu, ram, disk, net
+    case cpu, gpu, ram, disk, net, battery
     var id: String { rawValue }
+
+    /// Metrics this Mac can show: the battery only on Macs that have one.
+    static let available: [Metric] = allCases.filter { $0 != .battery || Battery.isPresent }
 
     var title: String {
         switch self {
@@ -12,6 +15,7 @@ enum Metric: String, CaseIterable, Identifiable {
         case .ram: "RAM"
         case .disk: "Disk"
         case .net: "Síť"
+        case .battery: "Baterie"
         }
     }
 
@@ -23,6 +27,7 @@ enum Metric: String, CaseIterable, Identifiable {
         case .ram: "R"
         case .disk: "D"
         case .net: "S"
+        case .battery: "B"
         }
     }
 
@@ -33,6 +38,7 @@ enum Metric: String, CaseIterable, Identifiable {
         case .ram: "memorychip"
         case .disk: "internaldrive"
         case .net: "network"
+        case .battery: "battery.75percent"
         }
     }
 
@@ -43,6 +49,7 @@ enum Metric: String, CaseIterable, Identifiable {
         case .ram: .orange
         case .disk: .pink
         case .net: .green
+        case .battery: .mint
         }
     }
 
@@ -57,6 +64,7 @@ enum Metric: String, CaseIterable, Identifiable {
         case .ram: s.memFraction
         case .disk: s.diskFraction
         case .net: min((s.netIn + s.netOut) / 125_000_000, 1)
+        case .battery: s.battery?.level ?? 0
         }
     }
 
@@ -67,6 +75,26 @@ enum Metric: String, CaseIterable, Identifiable {
         case .ram: Fmt.percent(s.memFraction)
         case .disk: Fmt.percent(s.diskFraction)
         case .net: Fmt.rate(s.netIn + s.netOut)
+        case .battery: Fmt.percent(s.battery?.level)
+        }
+    }
+
+    /// Gauge color: high load is bad for most metrics, a low charge is bad for the battery.
+    func strokeColor(_ v: Double) -> Color {
+        guard self == .battery else { return loadColor(color, v) }
+        return v <= 0.1 ? .red : v <= 0.2 ? .yellow : color
+    }
+
+    /// SF Symbol that follows the battery charge (and shows a bolt while charging).
+    func symbol(for s: MetricsSnapshot) -> String {
+        guard self == .battery, let b = s.battery else { return symbol }
+        if b.charging || (b.onAC && b.fullyCharged) { return "battery.100percent.bolt" }
+        switch b.level {
+        case ..<0.13: return "battery.0percent"
+        case ..<0.38: return "battery.25percent"
+        case ..<0.63: return "battery.50percent"
+        case ..<0.88: return "battery.75percent"
+        default: return "battery.100percent"
         }
     }
 }
@@ -120,13 +148,15 @@ struct RingGauge: View {
     var color: Color
     var label: String
     var lineWidth: CGFloat = 6
+    /// Color of the filled arc; default turns yellow / red under heavy load.
+    var stroke: Color? = nil
 
     var body: some View {
         ZStack {
             Circle().stroke(color.opacity(0.18), lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: max(0.001, min(value, 1)))
-                .stroke(loadColor(color, value), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .stroke(stroke ?? loadColor(color, value), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             Text(label)
                 .font(.system(size: 13, weight: .semibold, design: .rounded))

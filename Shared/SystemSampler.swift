@@ -51,6 +51,8 @@ struct MetricsSnapshot: Codable, Hashable {
     var cpuTemp: Double? = nil
     var cpuTempMax: Double? = nil
     var ssdTemp: Double? = nil
+    /// Internal battery; nil on Macs without one
+    var battery: Battery.Reading? = nil
 
     var memFraction: Double { memTotal > 0 ? Double(memUsed) / Double(memTotal) : 0 }
     var diskFraction: Double { diskTotal > 0 ? Double(diskUsed) / Double(diskTotal) : 0 }
@@ -81,6 +83,8 @@ struct MetricsSnapshot: Codable, Hashable {
         s.netOut = avg(\.netOut)
         s.diskRead = avg(\.diskRead)
         s.diskWrite = avg(\.diskWrite)
+        let levels = items.compactMap(\.battery?.level)
+        if !levels.isEmpty { s.battery?.level = levels.reduce(0, +) / Double(levels.count) }
         return s
     }
 }
@@ -175,6 +179,7 @@ final class SystemSampler {
         let totals = Self.networkTotals(counters)
         snap.netInTotal = totals.rx
         snap.netOutTotal = totals.tx
+        snap.battery = Battery.read()
         return snap
     }
 

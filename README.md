@@ -7,7 +7,7 @@
 <p align="center">Výkon vašich Maců na první pohled.</p>
 
 MacMetrix ukazuje ve stavové liště, v oknech a ve widgetech na ploše vytížení
-**CPU, GPU, paměti, disku a sítě**.
+**CPU, GPU, paměti, disku, sítě a baterie**.
 
 <p align="center">
   <img src="docs/screenshots/menubar.png" width="492" alt="Ukazatele MacMetrix ve stavové liště">
@@ -23,7 +23,7 @@ MacMetrix ukazuje ve stavové liště, v oknech a ve widgetech na ploše vytíž
 
 ## Funkce
 
-- **Samostatné ukazatele ve stavové liště** – CPU, GPU, RAM, Disk a Síť mají každý
+- **Samostatné ukazatele ve stavové liště** – CPU, GPU, RAM, Disk, Síť a Baterie mají každý
   vlastní položku s pevnou šířkou, takže při změně hodnot neposkakují. Vzhled:
   *Dvouřádkově*, *Ikona*, *Text* nebo *Sloupec*.
 - **Miniatura grafu** za každým ukazatelem (volitelně) – posledních 40 měření v barvě metriky.
@@ -33,6 +33,8 @@ MacMetrix ukazuje ve stavové liště, v oknech a ve widgetech na ploše vytíž
   cache SPM/CocoaPods/NuGet/npm/Homebrew/Gradle, bin/obj a .build v projektech, staré
   dočasné soubory a logy. Nejdřív ukáže velikosti a nechá vybrat kategorie; mazat jde
   trvale nebo do Koše.
+- **Baterie** (jen na MacBooku) – nabití, stav a zbývající čas, příkon systému, kondice, cykly
+  a teplota baterie. Na Macu bez baterie se ukazatel nezobrazuje.
 - **Dashboard** – velké ukazatele, grafy za 5 minut a hodinu a vytížení jednotlivých jader CPU.
 - **Widgety na plochu** (malý / střední / velký) s historií za poslední hodinu.
 - **Spouštění po přihlášení**, okno O aplikaci, Nastavení v samostatném okně.
@@ -109,6 +111,7 @@ Pro instalaci na vzdálené Macy přes `scp` / SSH je k dispozici ZIP s instala�
 | GPU | IOKit `IOAccelerator → PerformanceStatistics` | „Device Utilization %“ + využitá paměť GPU |
 | RAM | `host_statistics64` | „Použitá paměť“ jako v Monitoru aktivity (app + wired + komprimovaná), swap |
 | Disk | `/` resource values, IOKit `IOBlockStorageDriver` | obsazenost systémového svazku + čtení/zápis B/s; teplota SSD |
+| Baterie | IOKit `AppleSmartBattery` | nabití, nabíjení / adaptér, zbývající čas, kondice (plná kapacita / návrhová), cykly, teplota, výkon baterie (napětí × proud), příkon systému (telemetrie Apple Silicon) |
 | Síť | `sysctl IFMIB_IFDATA` (64bit čítače) | zvlášť **IN ↓** (modře) / **OUT ↑** (červeně); počítají se jen rozhraní `en*`, takže loopback, VPN a bridge VM (např. tart) se nezapočítají dvakrát. Když systém na `en*` příchozí bajty nehlásí (stává se s VPN / síťovými rozšířeními), bere se IN z VPN tunelů a v legendě je „(VPN)“. |
 
 Ukazatel sítě je vztažený k 1 Gbit/s (125 MB/s). Procesy se čtou přes `ps`, síťové
