@@ -51,6 +51,7 @@ codesign --force --timestamp --sign "$IDENTITY" "$DMG"
 # při spuštění po přihlášení místo aplikace ve složce Aplikace.
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 "$LSREGISTER" -u "$PWD/$STAGE/MacMetrix.app" 2>/dev/null || true
+"$LSREGISTER" -u "$PWD/$APP" 2>/dev/null || true
 rm -rf "$STAGE"
 
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then

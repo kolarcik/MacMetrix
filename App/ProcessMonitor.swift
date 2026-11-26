@@ -22,6 +22,9 @@ final class ProcessMonitor: ObservableObject {
     @Published private(set) var interfaces: [(name: String, address: String)] = []
 
     let metric: Metric
+    /// Popover window hosting the list. Closing it from code (opening another window) doesn't
+    /// always call onDisappear, so polling also pauses whenever the window isn't visible.
+    weak var window: NSWindow?
     private var timer: Timer?
     private let queue = DispatchQueue(label: "MacMetrix.ProcessMonitor", qos: .utility)
     private var prev: (counters: [Int32: (UInt64, UInt64)], time: TimeInterval)?
@@ -36,7 +39,10 @@ final class ProcessMonitor: ObservableObject {
         poll()
         let t = Timer(timeInterval: 2, repeats: true) { [weak self] timer in
             guard self != nil else { timer.invalidate(); return }
-            Task { @MainActor in self?.poll() }
+            Task { @MainActor in
+                guard let self, self.window?.isVisible ?? true else { return }
+                self.poll()
+            }
         }
         RunLoop.main.add(t, forMode: .common)
         timer = t

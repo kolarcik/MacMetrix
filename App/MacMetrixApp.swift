@@ -101,8 +101,7 @@ struct MacMetrixApp: App {
         .menuBarExtraStyle(.window)
 
         Window("MacMetrix", id: "dashboard") {
-            DashboardView()
-                .environmentObject(store)
+            WhenVisible { DashboardView().environmentObject(store) }
         }
         .defaultSize(width: 820, height: 780)
 
@@ -119,19 +118,18 @@ struct MacMetrixApp: App {
         .windowResizability(.contentSize)
 
         Window("Nastavení MacMetrix", id: "settings") {
-            SettingsView()
-                .environmentObject(store)
+            WhenVisible { SettingsView().environmentObject(store) }
         }
         .windowResizability(.contentSize)
     }
 
     private var popover: some View {
-        PopoverView().environmentObject(store)
+        WhenVisible { PopoverView().environmentObject(store) }
     }
 
     private func metricItem(_ m: Metric) -> some Scene {
         MenuBarExtra(isInserted: binding(for: m)) {
-            MetricDetailView(metric: m).environmentObject(store)
+            WhenVisible { MetricDetailView(metric: m).environmentObject(store) }
         } label: {
             MetricStatusLabel(metric: m, snapshot: store.current, style: style,
                               history: showSparkline ? Array(store.history.suffix(StatusImage.sparklinePoints)) : nil)

@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import Combine
 import WidgetKit
 import ServiceManagement
@@ -37,6 +37,12 @@ final class MonitorStore: ObservableObject {
     private var timer: Timer?
     private var pending: [MetricsSnapshot] = []
     private var lastWidgetPush = Date.distantPast
+    /// Widget reloads cost the widget extension several % CPU, so skip them when nobody can see a widget:
+    /// none is on the desktop, or the screen is locked.
+    private var widgetsPlaced = true
+    private var lastWidgetCheck = Date.distantPast
+    private var screenLocked = false
+    private var lockObservers: [NSObjectProtocol] = []
 
     init() {
         let saved = UserDefaults.standard.double(forKey: "sampleInterval")
@@ -47,7 +53,40 @@ final class MonitorStore: ObservableObject {
         let sampler = sampler
         samplingQueue.async { _ = sampler.sample() } // prime CPU / network counters
         enableLaunchAtLoginOnFirstRun()
+        observeScreenLock()
         startTimer()
+    }
+
+    private func observeScreenLock() {
+        let session = CGSessionCopyCurrentDictionary() as? [String: Any]
+        screenLocked = session?["CGSSessionScreenIsLocked"] as? Bool ?? false
+        let center = DistributedNotificationCenter.default()
+        lockObservers = [
+            center.addObserver(forName: .init("com.apple.screenIsLocked"), object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.screenLocked = true }
+            },
+            center.addObserver(forName: .init("com.apple.screenIsUnlocked"), object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in
+                    // Push fresh data right after unlocking.
+                    self?.screenLocked = false
+                    self?.lastWidgetPush = .distantPast
+                }
+            },
+        ]
+    }
+
+    /// Re-checks once a minute whether any MacMetrix widget is on the desktop.
+    private func refreshWidgetsPlaced(now: Date) {
+        guard now.timeIntervalSince(lastWidgetCheck) >= 60 else { return }
+        lastWidgetCheck = now
+        WidgetCenter.shared.getCurrentConfigurations { [weak self] result in
+            let placed = (try? result.get()).map { !$0.isEmpty } ?? true
+            Task { @MainActor in
+                guard let self else { return }
+                if placed && !self.widgetsPlaced { self.lastWidgetPush = .distantPast } // widget just added
+                self.widgetsPlaced = placed
+            }
+        }
     }
 
     private func startTimer() {
@@ -58,6 +97,12 @@ final class MonitorStore: ObservableObject {
         t.tolerance = sampleInterval * 0.1
         RunLoop.main.add(t, forMode: .common)
         timer = t
+    }
+
+    /// Free space is cached for a minute; refresh it right away after the disk cleanup.
+    func refreshDiskCapacity() {
+        let sampler = sampler
+        samplingQueue.async { sampler.invalidateDiskCapacity() }
     }
 
     private func sampleInBackground() {
@@ -89,7 +134,9 @@ final class MonitorStore: ObservableObject {
         }
 
         // Hand data over to the widget: shortly after start, then every `widgetInterval`.
+        refreshWidgetsPlaced(now: s.date)
         let sinceLast = s.date.timeIntervalSince(lastWidgetPush)
+        guard widgetsPlaced, !screenLocked else { return }
         if sinceLast >= widgetInterval - 0.5 || (lastWidgetPush == .distantPast && history.count >= 3) {
             lastWidgetPush = s.date
             SharedStore.write(SharedState(host: hostName, latest: s, history: minuteHistory))

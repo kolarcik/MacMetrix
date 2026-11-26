@@ -20,6 +20,9 @@ final class TemperatureSensors {
     private var client: AnyObject?
     private var cpu: [AnyObject] = []
     private var ssd: [AnyObject] = []
+    /// Reading all sensors takes ~30 ms of IOHID calls; temperatures change slowly, so reuse a recent reading.
+    private var last: (value: (cpu: Double?, cpuMax: Double?, ssd: Double?), time: TimeInterval)?
+    private static let minInterval: TimeInterval = 5
 
     init() {
         guard let c = IOHIDEventSystemClientCreate(kCFAllocatorDefault)?.takeRetainedValue() else { return }
@@ -41,9 +44,13 @@ final class TemperatureSensors {
 
     /// (average CPU, hottest CPU sensor, SSD) in °C.
     func read() -> (cpu: Double?, cpuMax: Double?, ssd: Double?) {
+        let now = ProcessInfo.processInfo.systemUptime
+        if let last, now - last.time < Self.minInterval { return last.value }
         let c = values(cpu)
         let s = values(ssd)
-        return (c.isEmpty ? nil : c.reduce(0, +) / Double(c.count), c.max(), s.max())
+        let value = (c.isEmpty ? nil : c.reduce(0, +) / Double(c.count), c.max(), s.max())
+        last = (value, now)
+        return value
     }
 
     private func values(_ services: [AnyObject]) -> [Double] {

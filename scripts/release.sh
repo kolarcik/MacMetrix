@@ -32,4 +32,6 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
 fi
 
 cp scripts/install.sh dist/
+# Odregistruj sestavenou kopii, aby ji macOS nespouštěl místo aplikace ve složce Aplikace.
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$PWD/$APP" 2>/dev/null || true
 echo "Hotovo: dist/MacMetrix.zip (+ dist/install.sh)"

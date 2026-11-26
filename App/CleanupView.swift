@@ -24,6 +24,9 @@ struct CleanupView: View {
         }
         .frame(minWidth: 620, minHeight: 560)
         .onDisappear { model.resetIfIdle() }
+        .onChange(of: model.phase) { _, phase in
+            if phase == .done { store.refreshDiskCapacity() }
+        }
         .confirmationDialog(confirmTitle, isPresented: $confirming, titleVisibility: .visible) {
             Button(model.moveToTrash ? "Přesunout do Koše" : "Trvale smazat", role: .destructive) { model.clean() }
             Button("Zrušit", role: .cancel) {}

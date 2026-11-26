@@ -4,18 +4,34 @@ import Charts
 /// Larger window – handy when looking at the machine over VNC.
 struct DashboardView: View {
     @EnvironmentObject var store: MonitorStore
-    @State private var range: Range = .fiveMinutes
+    /// Kept in defaults: the view is recreated whenever the window comes back on screen.
+    @AppStorage("dashboardRange") private var range: Range = .fiveMinutes
 
     enum Range: String, CaseIterable, Identifiable {
         case fiveMinutes = "5 min", hour = "1 hod"
         var id: String { rawValue }
     }
 
+    /// Chart data. The 5 minute view averages samples into 2 s buckets (150 points instead of 300
+    /// at the default 1 s interval): it looks the same at this width and halves the work of
+    /// redrawing five charts every second. Buckets follow the clock, so they don't shift as time passes.
     private var data: [MetricsSnapshot] {
-        range == .fiveMinutes ? store.history : store.minuteHistory + [store.current]
+        guard range == .fiveMinutes else { return store.minuteHistory + [store.current] }
+        var result: [MetricsSnapshot] = []
+        var bucket: [MetricsSnapshot] = []
+        var key = Int.min
+        for s in store.history {
+            let k = Int(s.date.timeIntervalSinceReferenceDate / 2)
+            if k != key, let avg = MetricsSnapshot.average(bucket) { result.append(avg); bucket.removeAll() }
+            key = k
+            bucket.append(s)
+        }
+        if let avg = MetricsSnapshot.average(bucket) { result.append(avg) }
+        return result
     }
 
     var body: some View {
+        let data = data
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
                 Text(store.hostName).font(.title2.bold())
@@ -42,15 +58,15 @@ struct DashboardView: View {
 
             Grid(horizontalSpacing: 14, verticalSpacing: 14) {
                 GridRow {
-                    chartCard(.cpu, subtitle: "usr \(Fmt.percent(store.current.cpuUser)) · sys \(Fmt.percent(store.current.cpuSystem)) · load \(Fmt.load(store.current.load))")
-                    chartCard(.gpu, subtitle: store.current.gpuMemory.map { "paměť GPU \(Fmt.gb($0))" } ?? "")
+                    chartCard(.cpu, data, subtitle: "usr \(Fmt.percent(store.current.cpuUser)) · sys \(Fmt.percent(store.current.cpuSystem)) · load \(Fmt.load(store.current.load))")
+                    chartCard(.gpu, data, subtitle: store.current.gpuMemory.map { "paměť GPU \(Fmt.gb($0))" } ?? "")
                 }
                 GridRow {
-                    chartCard(.ram, subtitle: "\(Fmt.gb(store.current.memUsed)) / \(Fmt.gb(store.current.memTotal)) · komprim. \(Fmt.gb(store.current.memCompressed)) · swap \(Fmt.gb(store.current.swapUsed))")
-                    chartCard(.net, subtitle: "")
+                    chartCard(.ram, data, subtitle: "\(Fmt.gb(store.current.memUsed)) / \(Fmt.gb(store.current.memTotal)) · komprim. \(Fmt.gb(store.current.memCompressed)) · swap \(Fmt.gb(store.current.swapUsed))")
+                    chartCard(.net, data, subtitle: "")
                 }
                 GridRow {
-                    chartCard(.disk, subtitle: "\(Fmt.gb(store.current.diskUsed)) / \(Fmt.gb(store.current.diskTotal)) · čtení \(Fmt.rate(store.current.diskRead)) · zápis \(Fmt.rate(store.current.diskWrite))")
+                    chartCard(.disk, data, subtitle: "\(Fmt.gb(store.current.diskUsed)) / \(Fmt.gb(store.current.diskTotal)) · čtení \(Fmt.rate(store.current.diskRead)) · zápis \(Fmt.rate(store.current.diskWrite))")
                         .gridCellColumns(2)
                 }
             }
@@ -75,7 +91,7 @@ struct DashboardView: View {
         .frame(minWidth: 760, minHeight: 720)
     }
 
-    private func chartCard(_ m: Metric, subtitle: String) -> some View {
+    private func chartCard(_ m: Metric, _ data: [MetricsSnapshot], subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Label(m.title, systemImage: m.symbol).font(.headline).foregroundStyle(m.color)

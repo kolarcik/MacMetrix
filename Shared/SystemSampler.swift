@@ -91,6 +91,12 @@ final class SystemSampler {
     private var prevTicks: [CPUTicks]?
     private var prevNet: (counters: [String: InterfaceCounters], time: TimeInterval)?
     private var prevDisk: (read: UInt64, write: UInt64, time: TimeInterval)?
+    /// Volume capacity changes slowly and is expensive to read (~30 ms: macOS computes purgeable space).
+    private var diskCache: (used: UInt64, total: UInt64, time: TimeInterval)?
+    private static let diskCapacityTTL: TimeInterval = 60
+
+    /// Re-read volume capacity on the next sample (e.g. after the disk cleanup freed space).
+    func invalidateDiskCapacity() { diskCache = nil }
 
     init() {}
 
@@ -139,7 +145,12 @@ final class SystemSampler {
             }
             prevDisk = (io.read, io.write, t)
         }
-        let disk = Self.diskCapacity()
+        let uptime = ProcessInfo.processInfo.systemUptime
+        if diskCache == nil || uptime - diskCache!.time >= Self.diskCapacityTTL {
+            let c = Self.diskCapacity()
+            diskCache = (c.used, c.total, uptime)
+        }
+        let disk = (used: diskCache!.used, total: diskCache!.total)
 
         let mem = Self.memory()
         let gpu = Self.gpu()

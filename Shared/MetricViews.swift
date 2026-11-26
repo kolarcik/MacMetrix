@@ -155,16 +155,20 @@ struct Sparkline: View {
         switch metric {
         case .net, .disk:
             autoScale = true
-            points = history.enumerated().flatMap { i, s in
-                [Point(id: i * 2, date: s.date, value: metric == .net ? s.netIn : s.diskRead, series: "in"),
-                 Point(id: i * 2 + 1, date: s.date, value: metric == .net ? s.netOut : s.diskWrite, series: "out")]
+            points = history.flatMap { s in
+                [Point(id: Self.id(s.date) * 2, date: s.date, value: metric == .net ? s.netIn : s.diskRead, series: "in"),
+                 Point(id: Self.id(s.date) * 2 + 1, date: s.date, value: metric == .net ? s.netOut : s.diskWrite, series: "out")]
             }
         default:
-            points = history.enumerated().map { i, s in
-                Point(id: i, date: s.date, value: metric.fraction(s), series: "v")
+            points = history.map { s in
+                Point(id: Self.id(s.date), date: s.date, value: metric.fraction(s), series: "v")
             }
         }
     }
+
+    /// Ids tied to the sample time, not the array index: when the window slides by one sample,
+    /// SwiftUI only inserts / removes one point instead of updating every mark.
+    private static func id(_ date: Date) -> Int { Int(date.timeIntervalSinceReferenceDate * 1000) }
 
     var body: some View {
         Chart(points) { p in

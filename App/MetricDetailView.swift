@@ -32,6 +32,7 @@ struct MetricDetailView: View {
         }
         .padding(12)
         .frame(width: 320)
+        .background(WindowReader { procs.window = $0 })
         .onAppear { procs.start() }
         .onDisappear { procs.stop() }
     }
@@ -401,5 +402,16 @@ private struct MemoryBar: View {
             .background(.quaternary)
             .clipShape(RoundedRectangle(cornerRadius: 3))
         }
+    }
+}
+
+/// Hands the hosting NSWindow to a closure once the view is in a window.
+struct WindowReader: NSViewRepresentable {
+    var onWindow: (NSWindow?) -> Void
+
+    func makeNSView(context: Context) -> NSView { NSView() }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        DispatchQueue.main.async { onWindow(view.window) }
     }
 }

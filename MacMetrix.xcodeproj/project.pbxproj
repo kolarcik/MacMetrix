@@ -16,6 +16,7 @@
 		3E394541D3ED1EF40890A2D9 /* MetricViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2965447E6B504781A65A7049 /* MetricViews.swift */; };
 		4E478CB7C801ED95AFBCD6A6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F60B825524C59FFE964B2A /* SettingsView.swift */; };
 		5E34924069F87B75FBBE54E0 /* MacMetrixApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BDE714A7DA483E11604DC4C /* MacMetrixApp.swift */; };
+		639BAB4CE0C7A7F38F78A599 /* WhenVisible.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE69032A74B0158869C9480 /* WhenVisible.swift */; };
 		66F1B641FBC83B6183EC724A /* MonitorStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D389A7E8B81F7E35E234B6 /* MonitorStore.swift */; };
 		7CB86670AF4C9A4C4C594341 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 350488C62AC8DB4E9BDD696E /* DashboardView.swift */; };
 		7D2290EEB0738520FB8ABE26 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17DC8FED32A30D493F1D080 /* SharedStore.swift */; };
@@ -77,6 +78,7 @@
 		A4B7EF4FA70FDD53B1CB1CAE /* CreatorLogo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = CreatorLogo.png; sourceTree = "<group>"; };
 		B17DC8FED32A30D493F1D080 /* SharedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStore.swift; sourceTree = "<group>"; };
 		CFA138AAC6D8FF705182C1B1 /* MacMetrixWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MacMetrixWidget.entitlements; sourceTree = "<group>"; };
+		CFE69032A74B0158869C9480 /* WhenVisible.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhenVisible.swift; sourceTree = "<group>"; };
 		D14A48DE36CA87116392802B /* ProcessMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessMonitor.swift; sourceTree = "<group>"; };
 		E6F2C67DEFEBBDCE938F3E54 /* CreatorLogo-dark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "CreatorLogo-dark.png"; sourceTree = "<group>"; };
 		EA00FD8B6BB4B5BDA1ECD5C9 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
@@ -126,6 +128,7 @@
 				D14A48DE36CA87116392802B /* ProcessMonitor.swift */,
 				50F60B825524C59FFE964B2A /* SettingsView.swift */,
 				EDF04CAC4DCBEC4A5AA36639 /* TemperatureSensors.swift */,
+				CFE69032A74B0158869C9480 /* WhenVisible.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -261,6 +264,7 @@
 				7D2290EEB0738520FB8ABE26 /* SharedStore.swift in Sources */,
 				E0F03C654BA5EBBAF1D860F2 /* SystemSampler.swift in Sources */,
 				E306EE1ED533F455E33B9AE9 /* TemperatureSensors.swift in Sources */,
+				639BAB4CE0C7A7F38F78A599 /* WhenVisible.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
