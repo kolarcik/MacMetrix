@@ -69,7 +69,7 @@ struct MacMetrixWidgetView: View {
                 GridRow { gauge(.cpu); gauge(.gpu); gauge(.ram) }
                 GridRow {
                     gauge(.disk); gauge(.net)
-                    if Metric.available.contains(.battery) { gauge(.battery) } else { Color.clear }
+                    if entry.snapshot.battery != nil { gauge(.battery) } else { Color.clear }
                 }
             }
         }
@@ -79,7 +79,7 @@ struct MacMetrixWidgetView: View {
         VStack(spacing: 6) {
             title
             HStack(spacing: 10) {
-                ForEach(Metric.available) { m in
+                ForEach(Metric.shown(in: entry.snapshot)) { m in
                     VStack(spacing: 4) {
                         gauge(m)
                         if entry.history.count > 1 {
@@ -94,7 +94,7 @@ struct MacMetrixWidgetView: View {
     private var large: some View {
         VStack(alignment: .leading, spacing: 8) {
             title
-            ForEach(Metric.available) { m in
+            ForEach(Metric.shown(in: entry.snapshot)) { m in
                 HStack(spacing: 10) {
                     RingGauge(value: m.fraction(entry.snapshot), color: m.color, label: "", lineWidth: 5,
                               stroke: m.strokeColor(m.fraction(entry.snapshot)))
@@ -108,7 +108,7 @@ struct MacMetrixWidgetView: View {
                         }
                         Text(detail(m)).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     }
-                    .frame(width: 100, alignment: .leading)
+                    .frame(width: 122, alignment: .leading)
                     Sparkline(history: entry.history, metric: m)
                 }
                 .frame(maxHeight: .infinity)
@@ -135,7 +135,9 @@ struct MacMetrixWidgetView: View {
         case .ram: return "\(Fmt.gb(s.memUsed)) / \(Fmt.gb(s.memTotal))"
         case .disk: return "R \(Fmt.rate(s.diskRead)) W \(Fmt.rate(s.diskWrite))"
         case .net: return "IN \(Fmt.rate(s.netIn)) · OUT \(Fmt.rate(s.netOut))"
-        case .battery: return s.battery?.summary ?? ""
+        case .battery:
+            guard let b = s.battery else { return "" }
+            return b.remainingText.map { "\(b.charging ? "do nabití" : "zbývá") \($0)" } ?? b.stateText
         }
     }
 }
@@ -146,7 +148,7 @@ struct MacMetrixWidget: Widget {
             MacMetrixWidgetView(entry: entry)
         }
         .configurationDisplayName("MacMetrix")
-        .description("Zatížení CPU, GPU, RAM, disku a sítě.")
+        .description("Zatížení CPU, GPU, RAM, disku, sítě a stav baterie.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }

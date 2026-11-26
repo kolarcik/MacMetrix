@@ -268,9 +268,8 @@ enum StatusImage {
     private static func stacked(_ m: Metric, _ s: MetricsSnapshot) -> NSImage {
         let labelFont = NSFont.systemFont(ofSize: 8.5, weight: .medium)
         let valueFont = NSFont.monospacedDigitSystemFont(ofSize: 12.5, weight: .semibold)
-        // Battery: a bolt after the caption while charging; the width already counts with it.
-        let label = m.title.uppercased() + (m == .battery && s.battery?.charging == true ? " ⚡︎" : "")
-        let w = max(width("100%", valueFont), width(m.title.uppercased() + (m == .battery ? " ⚡︎" : ""), labelFont))
+        let label = m.title.uppercased()
+        let w = max(width("100%", valueFont), width(label, labelFont))
         return image(width: w) {
             draw(label, labelFont, x: 0, baseline: 14)
             draw(m.valueText(s), valueFont, x: 0, baseline: 2.5)
@@ -283,7 +282,7 @@ enum StatusImage {
     }
 
     private static func iconValue(_ m: Metric, _ s: MetricsSnapshot) -> NSImage {
-        let symbol = symbolImage(m, s)
+        let symbol = symbolImage(m)
         let gap: CGFloat = 3
         if m == .net {
             return image(width: symbol.size.width + gap + netBlockWidth) {
@@ -367,6 +366,18 @@ enum StatusImage {
 
             let body = NSRect(x: iconX + 0.5, y: ((height - bodySize.height) / 2).rounded() + 0.5,
                               width: bodySize.width, height: bodySize.height)
+            let bolt = boltPath(in: NSRect(x: body.midX - 4.5, y: body.midY - 7, width: 9, height: 14))
+            let ctx = NSGraphicsContext.current?.cgContext
+            if charging, let ctx {
+                // Leave a thin gap around the bolt by clipping it (and a 1 pt halo) out of the outline and
+                // fill. Clipping only skips drawing, so nothing underneath the image gets erased.
+                let halo = bolt.cgPath.copy(strokingWithWidth: 2, lineCap: .round, lineJoin: .round, miterLimit: 10)
+                let keep = CGPath(rect: CGRect(origin: .zero, size: size), transform: nil)
+                    .subtracting(bolt.cgPath.union(halo))
+                ctx.saveGState()
+                ctx.addPath(keep)
+                ctx.clip()
+            }
             let outline = NSBezierPath(roundedRect: body, xRadius: 3.2, yRadius: 3.2)
             outline.lineWidth = 1
             NSColor.labelColor.withAlphaComponent(0.55).setStroke()
@@ -383,14 +394,8 @@ enum StatusImage {
                 NSBezierPath(roundedRect: bar, xRadius: 1.6, yRadius: 1.6).fill()
             }
 
-            if charging, let ctx = NSGraphicsContext.current {
-                let bolt = boltPath(in: NSRect(x: body.midX - 4.5, y: body.midY - 7, width: 9, height: 14))
-                // Cut a thin gap around the bolt so it stands out from both the fill and the outline.
-                ctx.compositingOperation = .destinationOut
-                NSColor.black.setStroke()
-                bolt.lineWidth = 2
-                bolt.stroke()
-                ctx.compositingOperation = .sourceOver
+            if charging, let ctx {
+                ctx.restoreGState()
                 NSColor.labelColor.setFill()
                 bolt.fill()
             }
@@ -548,9 +553,9 @@ enum StatusImage {
         a.draw(at: NSPoint(x: px, y: baseline + font.descender))
     }
 
-    private static func symbolImage(_ m: Metric, _ s: MetricsSnapshot) -> NSImage {
+    private static func symbolImage(_ m: Metric) -> NSImage {
         let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
-        return NSImage(systemSymbolName: m.symbol(for: s), accessibilityDescription: m.title)?
+        return NSImage(systemSymbolName: m.symbol, accessibilityDescription: m.title)?
             .withSymbolConfiguration(config) ?? NSImage()
     }
 

@@ -79,7 +79,8 @@ struct SettingsView: View {
             } footer: {
                 Text(MenuBarMetrics.decode(metricsRaw).isEmpty
                      ? "Nic nevybráno – ve stavové liště bude jen ikona aplikace."
-                     : "Pořadí ukazatelů změníš přetažením se stisknutým ⌘.")
+                     : "Pořadí ukazatelů změníš přetažením se stisknutým ⌘."
+                        + (Metric.available.contains(.battery) ? " Baterie má vždy vlastní ikonu s procentem, bez miniatury grafu." : ""))
                     .font(.caption).foregroundStyle(.secondary)
             }
 

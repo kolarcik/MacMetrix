@@ -51,7 +51,15 @@ final class MonitorStore: ObservableObject {
         widgetInterval = savedWidget > 0 ? savedWidget : 10
         minuteHistory = SharedStore.read()?.history.filter { $0.date > Date().addingTimeInterval(-3600) } ?? []
         let sampler = sampler
-        samplingQueue.async { _ = sampler.sample() } // prime CPU / network counters
+        // Prime CPU / network counters. Its rates are meaningless, but the battery reading isn't:
+        // show it right away instead of an empty battery until the first real sample.
+        samplingQueue.async { [weak self] in
+            let battery = sampler.sample().battery
+            DispatchQueue.main.async {
+                guard let self, self.current.date == .distantPast, let battery else { return }
+                self.current.battery = battery
+            }
+        }
         enableLaunchAtLoginOnFirstRun()
         observeScreenLock()
         startTimer()

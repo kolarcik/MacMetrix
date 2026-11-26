@@ -212,8 +212,8 @@ struct MetricDetailView: View {
             if let b = s.battery {
                 SectionHeader("Napájení")
                 if let w = b.systemPower { DetailRow("Příkon systému", Fmt.watts(w), dot: .orange) }
-                if let w = b.batteryPower {
-                    DetailRow(w >= 0 ? "Nabíjení baterie" : "Vybíjení baterie", Fmt.watts(abs(w)), dot: w >= 0 ? .green : .red)
+                if let w = b.batteryPower, abs(w) >= 0.1 { // ~0 W: full or paused, nothing flows
+                    DetailRow(w > 0 ? "Nabíjení baterie" : "Vybíjení baterie", Fmt.watts(abs(w)), dot: w > 0 ? .green : .red)
                 }
                 SectionHeader("Stav baterie")
                 DetailRow("Kondice", Fmt.percent(b.health), dot: .green)

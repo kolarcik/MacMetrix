@@ -8,6 +8,12 @@ enum Metric: String, CaseIterable, Identifiable {
     /// Metrics this Mac can show: the battery only on Macs that have one.
     static let available: [Metric] = allCases.filter { $0 != .battery || Battery.isPresent }
 
+    /// Metrics to show for a snapshot: the battery when the snapshot has battery data. For the sandboxed
+    /// widget, which may not be allowed to look the battery up itself but gets it from the app.
+    static func shown(in s: MetricsSnapshot) -> [Metric] {
+        allCases.filter { $0 != .battery || s.battery != nil }
+    }
+
     var title: String {
         switch self {
         case .cpu: "CPU"
