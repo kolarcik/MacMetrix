@@ -8,7 +8,7 @@
 #
 # Použití:
 #   ./scripts/make-dmg.sh
-#   NOTARY_PROFILE=dockpeek ./scripts/make-dmg.sh     # s notarizací
+#   NOTARY_PROFILE=macmetrix ./scripts/make-dmg.sh     # s notarizací
 #
 # Profil pro notarizaci se jednou uloží do Klíčenky:
 #   xcrun notarytool store-credentials <profil> --apple-id <apple-id> --team-id 3ZN9TSG9S7
