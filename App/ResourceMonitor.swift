@@ -24,6 +24,8 @@ struct ProcessRow: Identifiable, Hashable {
     var pageins: Double = -1
     var id: Int32 { pid }
     var net: Double { netIn + netOut }
+    /// Read + write; -1 when unknown.
+    var disk: Double { diskRead < 0 ? -1 : diskRead + diskWrite }
 }
 
 /// An established (or closing) TCP connection.
@@ -36,14 +38,28 @@ struct NetConnection: Identifiable, Hashable {
     var localPort: Int
     var remoteAddress: String
     var remotePort: Int
+    /// Localized state name, shown and sorted in the table.
     var state: String
+    /// TCP state is Established (highlighted in the table).
+    var isEstablished: Bool
     var rateIn: Double
     var rateOut: Double
 }
 
 /// A file, folder or device a process holds open (Windows "Associated Handles").
 struct OpenFile: Identifiable, Hashable {
-    enum Kind: String { case file = "Soubor", folder = "Složka", device = "Zařízení", cwd = "Pracovní složka" }
+    enum Kind: String {
+        case file = "Soubor", folder = "Složka", device = "Zařízení", cwd = "Pracovní složka"
+
+        var title: String {
+            switch self {
+            case .file: String(localized: "Soubor")
+            case .folder: String(localized: "Složka")
+            case .device: String(localized: "Zařízení")
+            case .cwd: String(localized: "Pracovní složka")
+            }
+        }
+    }
     var id: String
     var pid: Int32
     var name: String
@@ -51,8 +67,9 @@ struct OpenFile: Identifiable, Hashable {
     var fd: Int32
     var path: String
     var kind: Kind
+    /// Localized access mode ("čtení", "zápis"…).
     var mode: String
-    var kindName: String { kind.rawValue }
+    var kindName: String { kind.title }
 }
 
 /// A TCP port in the Listen state, or a bound UDP port. IPv4 and IPv6 sockets of one process
@@ -78,6 +95,8 @@ final class ResourceMonitor: ObservableObject {
     @Published private(set) var connections: [NetConnection] = []
     @Published private(set) var listening: [ListeningPort] = []
     @Published private(set) var files: [OpenFile] = []
+    @Published private(set) var disks: [PhysicalDisk] = []
+    @Published private(set) var volumes: [VolumeInfo] = []
     /// The privileged helper answered the last sample: system processes have full details.
     @Published private(set) var helperActive = false
     /// Open files are only collected while the Soubory tab is shown.
@@ -135,7 +154,8 @@ final class ResourceMonitor: ObservableObject {
         polling = true
         let sampler = sampler, collectFiles = collectFiles
         queue.async {
-            let s = sampler.sample(files: collectFiles)
+            var s = sampler.sample(files: collectFiles)
+            if DemoMode.isOn { s = s.disguised() }
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.polling = false
@@ -144,6 +164,8 @@ final class ResourceMonitor: ObservableObject {
                 self.processes = s.processes
                 self.connections = s.connections
                 self.listening = s.listening
+                self.disks = s.disks
+                if self.volumes != s.volumes { self.volumes = s.volumes }
                 if self.helperActive != s.helperActive { self.helperActive = s.helperActive }
                 self.files = self.collectFiles ? s.files : []
                 // The Soubory tab opened while a sample without files was running: don't wait for the next tick.
@@ -178,15 +200,15 @@ final class ResourceMonitor: ObservableObject {
         var denied = false
         for pid in pids {
             if pid <= 1 {
-                failed.append("\(ProcessMonitor.name(pid)) (\(pid)) – systémový proces")
+                failed.append(String(localized: "\(ProcessMonitor.name(pid)) (\(pid)) – systémový proces"))
                 continue
             }
             if pid == getpid() {
-                failed.append("MacMetrix (\(pid)) – sám sebe neukončí, použijte Ukončit MacMetrix")
+                failed.append(String(localized: "MacMetrix (\(pid)) – sám sebe neukončí, použijte Ukončit MacMetrix"))
                 continue
             }
             if let expected = paths[pid], ResourceSampler.path(pid) != expected {
-                failed.append("\((expected as NSString).lastPathComponent) (\(pid)) – mezitím skončil")
+                failed.append(String(localized: "\((expected as NSString).lastPathComponent) (\(pid)) – mezitím skončil"))
                 continue
             }
             if let app = NSRunningApplication(processIdentifier: pid), app.bundleIdentifier != nil {
@@ -194,13 +216,13 @@ final class ResourceMonitor: ObservableObject {
             }
             if kill(pid, force ? SIGKILL : SIGTERM) != 0 {
                 denied = denied || errno == EPERM
-                let reason = errno == EPERM ? "patří jinému uživateli nebo systému" : String(cString: strerror(errno))
+                let reason = errno == EPERM ? String(localized: "patří jinému uživateli nebo systému") : String(cString: strerror(errno))
                 failed.append("\(ProcessMonitor.name(pid)) (\(pid)) – \(reason)")
             }
         }
         guard !failed.isEmpty else { return nil }
-        return "Nepodařilo se ukončit:\n" + failed.joined(separator: "\n")
-            + (denied ? "\n\nMacMetrix běží bez oprávnění správce, takže takové procesy ukončit nemůže." : "")
+        return String(localized: "Nepodařilo se ukončit:") + "\n" + failed.joined(separator: "\n")
+            + (denied ? "\n\n" + String(localized: "MacMetrix běží bez oprávnění správce, takže takové procesy ukončit nemůže.") : "")
     }
 }
 
@@ -212,7 +234,11 @@ final class ResourceSampler: @unchecked Sendable {
         var listening: [ListeningPort]
         var files: [OpenFile]
         var helperActive: Bool
+        var disks: [PhysicalDisk]
+        var volumes: [VolumeInfo]
     }
+
+    private let diskSampler = DiskSampler()
 
     private var prevTime: TimeInterval?
     private var prevDisk: [Int32: (UInt64, UInt64)] = [:]
@@ -289,7 +315,8 @@ final class ResourceSampler: @unchecked Sendable {
                 let id = "\(s.pid)|\(s.local.host):\(s.local.port)|\(s.remote.host):\(s.remote.port)"
                 var conn = NetConnection(id: id, pid: s.pid, name: name, proto: s.family, localAddress: s.local.host,
                                          localPort: s.local.port, remoteAddress: s.remote.host, remotePort: s.remote.port,
-                                         state: Self.stateName(s.state), rateIn: 0, rateOut: 0)
+                                         state: Self.stateName(s.state), isEstablished: s.state == "Established",
+                                         rateIn: 0, rateOut: 0)
                 sockets[id] = (s.bytesIn, s.bytesOut)
                 if let prev = prevSockets[id], dt > 0 {
                     conn.rateIn = s.bytesIn >= prev.0 ? Double(s.bytesIn - prev.0) / dt : 0
@@ -307,7 +334,7 @@ final class ResourceSampler: @unchecked Sendable {
         return Sample(processes: rows, connections: connections,
                       listening: ports.values.sorted { ($0.port, $0.pid) < ($1.port, $1.pid) },
                       files: collectFiles ? Self.openFiles(rows, nameOf: nameOf, viaHelper: helper != nil) : [],
-                      helperActive: helper != nil)
+                      helperActive: helper != nil, disks: diskSampler.disks(), volumes: diskSampler.volumes())
     }
 
     /// App bundle name for apps ("Microsoft Teams"), the executable's full name otherwise
@@ -346,14 +373,14 @@ final class ResourceSampler: @unchecked Sendable {
 
     private static func stateName(_ s: String) -> String {
         switch s {
-        case "Established": "Navázáno"
-        case "SynSent": "Navazuje se"
-        case "SynReceived": "Přijímá se"
-        case "TimeWait": "Čeká (TIME_WAIT)"
-        case "CloseWait": "Zavírá se (CLOSE_WAIT)"
-        case "FinWait1", "FinWait2": "Zavírá se"
-        case "LastAck", "Closing": "Zavírá se"
-        case "Closed": "Zavřeno"
+        case "Established": String(localized: "Navázáno")
+        case "SynSent": String(localized: "Navazuje se")
+        case "SynReceived": String(localized: "Přijímá se")
+        case "TimeWait": String(localized: "Čeká (TIME_WAIT)")
+        case "CloseWait": String(localized: "Zavírá se (CLOSE_WAIT)")
+        case "FinWait1", "FinWait2": String(localized: "Zavírá se")
+        case "LastAck", "Closing": String(localized: "Zavírá se")
+        case "Closed": String(localized: "Zavřeno")
         default: s
         }
     }
@@ -371,9 +398,9 @@ final class ResourceSampler: @unchecked Sendable {
             case .cwd: .cwd
             }
             let mode = switch f.mode {
-            case "rw": "čtení i zápis"
-            case "w": "zápis"
-            case "r": "čtení"
+            case "rw": String(localized: "čtení i zápis")
+            case "w": String(localized: "zápis")
+            case "r": String(localized: "čtení")
             default: ""
             }
             return OpenFile(id: "\(f.pid)|\(f.fd)|\(f.path)", pid: f.pid, name: nameOf[f.pid] ?? "pid \(f.pid)",
@@ -461,5 +488,62 @@ final class ResourceSampler: @unchecked Sendable {
     private static func endpoint(_ s: String, v6: Bool) -> Endpoint {
         guard let sep = s.lastIndex(of: v6 ? "." : ":") else { return Endpoint(host: s, port: 0) }
         return Endpoint(host: String(s[..<sep]), port: Int(s[s.index(after: sep)...]) ?? 0)
+    }
+}
+
+// MARK: - Demo mode
+
+extension ResourceSampler.Sample {
+    /// Screenshot mode (`-demoMode YES`): generic process names, user, paths and addresses instead of
+    /// the real ones. Measured values stay real; icons follow the generic names (see `ProcessIcon`).
+    func disguised() -> Self {
+        let home = NSHomeDirectory()
+        let users = Dictionary(processes.map { ($0.pid, $0.user) }, uniquingKeysWith: { a, _ in a })
+        func isSystem(_ pid: Int32) -> Bool { users[pid].map { $0 == "root" || $0.hasPrefix("_") } ?? true }
+        func name(_ pid: Int32) -> String {
+            let list = isSystem(pid) ? DemoMode.systemProcessNames : DemoMode.resourceProcessNames
+            return list[Int(UInt32(bitPattern: pid) % UInt32(list.count))]
+        }
+        func pid(_ pid: Int32) -> Int32 { pid }
+        func user(_ u: String) -> String { u == "root" || u.hasPrefix("_") ? u : "user" }
+        func address(_ a: String, seed: Int32) -> String {
+            if a == "*" || a.hasPrefix("127.") || a == "::1" { return a }
+            if a.hasPrefix("192.168.") || a.hasPrefix("10.") || a.hasPrefix("fe80") { return a.contains(":") ? "fe80::1c2a" : "192.168.1.20" }
+            let n = UInt32(bitPattern: seed)
+            return "17.\(n % 200 + 20).\(n / 7 % 250).\(n / 13 % 250)"
+        }
+        var copy = self
+        copy.processes = processes.map { r in
+            var r = r
+            r.name = name(r.pid)
+            r.user = user(r.user)
+            r.path = "/Applications/\(r.name).app"
+            r.pid = pid(r.pid)
+            r.ppid = pid(r.ppid)
+            return r
+        }
+        copy.connections = connections.map { c in
+            var c = c
+            c.name = name(c.pid)
+            c.localAddress = address(c.localAddress, seed: c.pid)
+            c.remoteAddress = address(c.remoteAddress, seed: c.pid &+ Int32(c.remotePort))
+            c.id = "\(c.pid)|\(c.id)"
+            c.pid = pid(c.pid)
+            return c
+        }
+        copy.listening = listening.map { p in
+            var p = p
+            p.name = name(p.pid)
+            p.pid = pid(p.pid)
+            return p
+        }
+        copy.files = files.map { f in
+            var f = f
+            f.name = name(f.pid)
+            if f.path.hasPrefix(home) { f.path = "/Users/user" + f.path.dropFirst(home.count) }
+            f.pid = pid(f.pid)
+            return f
+        }
+        return copy
     }
 }

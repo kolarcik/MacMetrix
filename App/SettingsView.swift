@@ -79,19 +79,22 @@ struct SettingsView: View {
                 Text("Ukazatele ve stavové liště")
             } footer: {
                 Text(MenuBarMetrics.decode(metricsRaw).isEmpty
-                     ? "Nic nevybráno – ve stavové liště bude jen ikona aplikace."
-                     : "Pořadí ukazatelů změníš přetažením se stisknutým ⌘."
-                        + (Metric.available.contains(.battery) ? " Baterie má vždy vlastní ikonu s procentem, bez miniatury grafu." : ""))
+                     ? String(localized: "Nic nevybráno – ve stavové liště bude jen ikona aplikace.")
+                     : String(localized: "Pořadí ukazatelů změníš přetažením se stisknutým ⌘.")
+                        + (Metric.available.contains(.battery)
+                           ? " " + String(localized: "Baterie má vždy vlastní ikonu s procentem, bez miniatury grafu.") : ""))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
             Section {
-                Toggle(isOn: Binding(get: { helper.status == .enabled || helper.status == .requiresApproval },
-                                     set: { helper.setEnabled($0) })) {
+                Toggle(isOn: Binding(get: { helper.isOn }, set: { helper.setEnabled($0) })) {
                     Text("Údaje o systémových procesech")
-                    Text("Doplní vlákna, paměť, disk a otevřené soubory i u procesů systému a jiných uživatelů. Pomocná služba běží s právy správce, ale jen čte – nic nemění ani neukončuje.")
+                    Text("Doplní vlákna, paměť, disk a otevřené soubory i u procesů systému a jiných uživatelů. Zapne pomocnou službu na pozadí s právy správce, která jen čte – nic nemění ani neukončuje. Ve výchozím stavu je vypnuto.")
                 }
-                switch helper.status {
+                switch helper.isOn ? helper.status : .notRegistered {
+                case .enabled:
+                    Text("Služba je schválená a Monitor prostředků ji používá.")
+                        .font(.caption).foregroundStyle(.secondary)
                 case .requiresApproval:
                     HStack {
                         Text("Čeká na schválení v Nastavení systému → Obecné → Položky při přihlášení.")
@@ -122,7 +125,8 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        // The form scrolls; the window can be made taller, but starts at a height that fits most screens.
         .frame(width: 440)
-        .fixedSize(horizontal: false, vertical: true)
+        .frame(minHeight: 320, idealHeight: 640)
     }
 }

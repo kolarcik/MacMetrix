@@ -14,7 +14,21 @@ struct ResourceGraphs<Header: View>: View {
         case oneMinute = "1 min", fiveMinutes = "5 min", hour = "1 hod"
         var id: String { rawValue }
         var seconds: TimeInterval { self == .oneMinute ? 60 : self == .fiveMinutes ? 300 : 3600 }
-        var caption: String { self == .oneMinute ? "60 sekund" : self == .fiveMinutes ? "5 minut" : "60 minut (minutové průměry)" }
+        /// Shown in the picker; the raw value is stored in defaults and must not change.
+        var title: String {
+            switch self {
+            case .oneMinute: String(localized: "1 min")
+            case .fiveMinutes: String(localized: "5 min")
+            case .hour: String(localized: "1 hod")
+            }
+        }
+        var caption: String {
+            switch self {
+            case .oneMinute: String(localized: "60 sekund")
+            case .fiveMinutes: String(localized: "5 minut")
+            case .hour: String(localized: "60 minut (minutové průměry)")
+            }
+        }
     }
 
     /// Chart data. One minute shows raw samples; five minutes averages them into 2 s buckets (150 points
@@ -50,7 +64,7 @@ struct ResourceGraphs<Header: View>: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 Picker("", selection: $range) {
-                    ForEach(Range.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(Range.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
@@ -58,18 +72,18 @@ struct ResourceGraphs<Header: View>: View {
                 header()
 
                 card(.cpu, data, value: Fmt.percent(s.cpu),
-                     subtitle: "usr \(Fmt.percent(s.cpuUser)) · sys \(Fmt.percent(s.cpuSystem)) · load \(Fmt.load(s.load))")
+                     subtitle: String(localized: "usr \(Fmt.percent(s.cpuUser)) · sys \(Fmt.percent(s.cpuSystem)) · load \(Fmt.load(s.load))"))
                 cores(data)
                 card(.ram, data, value: Fmt.percent(Metric.ram.fraction(s)),
-                     subtitle: "\(Fmt.gb(s.memUsed)) / \(Fmt.gb(s.memTotal)) · komprim. \(Fmt.gb(s.memCompressed)) · swap \(Fmt.gb(s.swapUsed))")
+                     subtitle: String(localized: "\(Fmt.gb(s.memUsed)) / \(Fmt.gb(s.memTotal)) · komprim. \(Fmt.gb(s.memCompressed)) · swap \(Fmt.gb(s.swapUsed))"))
                 card(.disk, data, value: nil,
-                     subtitle: "čtení \(Fmt.rate(s.diskRead)) · zápis \(Fmt.rate(s.diskWrite)) · volno \(Fmt.gb(s.diskTotal - s.diskUsed))")
+                     subtitle: String(localized: "čtení \(Fmt.rate(s.diskRead)) · zápis \(Fmt.rate(s.diskWrite)) · volno \(Fmt.gb(s.diskTotal - s.diskUsed))"))
                 card(.net, data, value: nil, subtitle: nil)
                 if Metric.available.contains(.battery), let battery = s.battery {
                     card(.battery, data, value: Fmt.percent(battery.level), subtitle: battery.summary)
                 }
                 if s.gpu != nil {
-                    card(.gpu, data, value: Fmt.percent(s.gpu), subtitle: s.gpuMemory.map { "paměť GPU \(Fmt.gb($0))" } ?? "")
+                    card(.gpu, data, value: Fmt.percent(s.gpu), subtitle: s.gpuMemory.map { String(localized: "paměť GPU \(Fmt.gb($0))") } ?? "")
                 }
             }
             .padding(10)
@@ -80,7 +94,7 @@ struct ResourceGraphs<Header: View>: View {
     private func card(_ m: Metric, _ data: [MetricsSnapshot], value: String?, subtitle: String?) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
-                Label(m == .ram ? "Paměť" : m.title, systemImage: m.symbol).font(.headline).foregroundStyle(m.color)
+                Label(m == .ram ? String(localized: "Paměť") : m.title, systemImage: m.symbol).font(.headline).foregroundStyle(m.color)
                 Spacer()
                 if m == .net {
                     InOutLegend(metric: m, snapshot: store.current, font: .caption)
@@ -129,6 +143,7 @@ struct ResourceGraphs<Header: View>: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: columns), spacing: 6) {
                     ForEach(0..<count, id: \.self) { i in
                         let efficient = i < efficiency
+                        // E = efficiency, P = performance core (explained next to the title).
                         MiniGraph(label: efficient ? "E\(i + 1)" : "P\(i - efficiency + 1)",
                                   value: Fmt.percent(store.current.cores[i]),
                                   color: efficiency == 0 ? Metric.cpu.color : efficient ? .teal : .indigo,
@@ -148,7 +163,7 @@ extension ResourceGraphs where Header == EmptyView {
 
 /// Small history graph (one CPU core, one resource of a process): area under the values.
 struct MiniGraph: View {
-    var label: String
+    var label: LocalizedStringKey
     var value: String
     var color: Color
     /// x 0...1 across the shown range (1 = now), y 0...1 of the graph height.
@@ -222,7 +237,7 @@ struct ProcessGraphs: View {
     }
 
     /// Values scaled to the highest one shown (at least `minScale`), placed by time.
-    private func graph(_ label: String, _ value: String, _ color: Color, _ samples: [ResourceMonitor.ProcSample],
+    private func graph(_ label: LocalizedStringKey, _ value: String, _ color: Color, _ samples: [ResourceMonitor.ProcSample],
                        _ key: KeyPath<ResourceMonitor.ProcSample, Double>, minScale: Double = 1) -> some View {
         let end = samples.last?.date ?? Date()
         let top = max(samples.map { $0[keyPath: key] }.max() ?? 0, minScale)

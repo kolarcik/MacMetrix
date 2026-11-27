@@ -7,10 +7,10 @@ enum MenuBarStyle: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .stacked: "Dvouřádkově"
-        case .iconValue: "Ikona"
-        case .text: "Text"
-        case .bars: "Sloupec"
+        case .stacked: String(localized: "Dvouřádkově")
+        case .iconValue: String(localized: "Ikona")
+        case .text: String(localized: "Text")
+        case .bars: String(localized: "Sloupec")
         }
     }
 }
@@ -23,9 +23,9 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .system: "Podle systému"
-        case .light: "Světlý"
-        case .dark: "Tmavý"
+        case .system: String(localized: "Podle systému")
+        case .light: String(localized: "Světlý")
+        case .dark: String(localized: "Tmavý")
         }
     }
 
@@ -178,6 +178,7 @@ struct MacMetrixApp: App {
         Window("Nastavení MacMetrix", id: "settings") {
             WhenVisible { SettingsView().environmentObject(store) }
         }
+        .defaultSize(width: 440, height: 640)
         .windowResizability(.contentSize)
     }
 

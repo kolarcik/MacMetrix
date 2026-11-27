@@ -177,7 +177,8 @@ enum ProcessIcon {
     static func image(_ pid: Int32, name: String) -> NSImage {
         let key = "\(pid)|\(name)"
         if let img = cache[key] { return img }
-        let img = (pid < 0 ? DemoMode.icon(for: name) : NSRunningApplication(processIdentifier: pid)?.icon) ?? generic
+        // Demo mode shows generic process names, so the icons follow the names, not the real apps.
+        let img = (pid < 0 || DemoMode.isOn ? DemoMode.icon(for: name) : NSRunningApplication(processIdentifier: pid)?.icon) ?? generic
         if cache.count > 500 { cache.removeAll() }
         cache[key] = img
         return img

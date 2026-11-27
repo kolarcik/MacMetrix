@@ -8,7 +8,7 @@ struct AboutView: View {
         let info = Bundle.main.infoDictionary
         let short = info?["CFBundleShortVersionString"] as? String ?? "–"
         let build = info?["CFBundleVersion"] as? String ?? "–"
-        return "Verze \(short) (\(build))"
+        return String(localized: "Verze \(short) (\(build))")
     }
 
     var body: some View {
@@ -116,8 +116,8 @@ enum LegalDocument: String, Identifiable, CaseIterable {
 
     var title: String {
         switch self {
-        case .terms: "Podmínky použití"
-        case .privacy: "Zásady ochrany soukromí"
+        case .terms: String(localized: "Podmínky použití")
+        case .privacy: String(localized: "Zásady ochrany soukromí")
         }
     }
 
@@ -130,35 +130,35 @@ enum LegalDocument: String, Identifiable, CaseIterable {
     var intro: String {
         switch self {
         case .terms:
-            "MacMetrix je bezplatná aplikace, která ve stavové liště, v oknech a ve widgetech ukazuje vytížení CPU, GPU, paměti, disku a sítě. Používáním aplikace souhlasíte s těmito podmínkami."
+            String(localized: "MacMetrix je bezplatná aplikace, která ve stavové liště, v oknech a ve widgetech ukazuje vytížení CPU, GPU, paměti, disku a sítě. Používáním aplikace souhlasíte s těmito podmínkami.")
         case .privacy:
-            "MacMetrix je postavený tak, aby jeho autor neměl přístup k ničemu z vašeho Macu. Tyto zásady popisují, s jakými daty aplikace pracuje a kam se dostanou."
+            String(localized: "MacMetrix je postavený tak, aby jeho autor neměl přístup k ničemu z vašeho Macu. Tyto zásady popisují, s jakými daty aplikace pracuje a kam se dostanou.")
         }
     }
 
     var sections: [Section] {
         switch self {
         case .terms: [
-            Section(title: "Aplikace „tak, jak je“",
-                    text: "MacMetrix je poskytován zdarma a bez záruky, tak jak je. Autor se snaží, aby fungoval spolehlivě a měřil přesně, ale nezaručuje, že je bez chyb. Odpovědnost autora je omezena v rozsahu, který zákon dovoluje."),
-            Section(title: "Úklid disku",
-                    text: "Průvodce úklidem disku maže jen kategorie, které sami vyberete a potvrdíte. Trvale smazané soubory nejde obnovit – pokud si nejste jisti, zvolte přesun do Koše. Za smazaná data odpovídá uživatel."),
-            Section(title: "Systémové údaje",
-                    text: "Teploty čte MacMetrix z teplotních senzorů Apple Silicon přes neveřejné systémové rozhraní. Jejich dostupnost a přesnost se může s verzemi macOS měnit. Seznam procesů vychází ze systémových nástrojů ps a nettop."),
-            Section(title: "Spouštění po přihlášení",
-                    text: "Při prvním spuštění se MacMetrix zaregistruje jako položka při přihlášení. Vypnout to můžete v Nastavení aplikace nebo v Nastavení systému."),
-            Section(title: "Změny podmínek",
-                    text: "Podmínky se mohou s novými verzemi aplikace měnit. Aktuální znění je vždy v okně O aplikaci MacMetrix."),
+            Section(title: String(localized: "Aplikace „tak, jak je“"),
+                    text: String(localized: "MacMetrix je poskytován zdarma a bez záruky, tak jak je. Autor se snaží, aby fungoval spolehlivě a měřil přesně, ale nezaručuje, že je bez chyb. Odpovědnost autora je omezena v rozsahu, který zákon dovoluje.")),
+            Section(title: String(localized: "Úklid disku"),
+                    text: String(localized: "Průvodce úklidem disku maže jen kategorie, které sami vyberete a potvrdíte. Trvale smazané soubory nejde obnovit – pokud si nejste jisti, zvolte přesun do Koše. Za smazaná data odpovídá uživatel.")),
+            Section(title: String(localized: "Systémové údaje"),
+                    text: String(localized: "Teploty čte MacMetrix z teplotních senzorů Apple Silicon přes neveřejné systémové rozhraní. Jejich dostupnost a přesnost se může s verzemi macOS měnit. Seznam procesů vychází ze systémových nástrojů ps a nettop.")),
+            Section(title: String(localized: "Spouštění po přihlášení"),
+                    text: String(localized: "Při prvním spuštění se MacMetrix zaregistruje jako položka při přihlášení. Vypnout to můžete v Nastavení aplikace nebo v Nastavení systému.")),
+            Section(title: String(localized: "Změny podmínek"),
+                    text: String(localized: "Podmínky se mohou s novými verzemi aplikace měnit. Aktuální znění je vždy v okně O aplikaci MacMetrix.")),
         ]
         case .privacy: [
-            Section(title: "Žádný sběr dat",
-                    text: "MacMetrix nemá vlastní server. Autor neshromažďuje, nevidí ani nezpracovává žádná vaše data. Aplikace neobsahuje reklamy, analytiku ani sledování a nesdílí žádná data s třetími stranami."),
-            Section(title: "Měření",
-                    text: "Hodnoty výkonu, názvy procesů a síťová rozhraní se čtou přímo ze systému vašeho Macu a drží se v paměti. Pro widget se ukládá poslední měření a průměry za poslední hodinu do sdílené složky aplikace na tomto Macu; nic se neodesílá."),
-            Section(title: "Úklid disku",
-                    text: "Průvodce prochází jen známé složky s cache a build výstupy a vámi zvolenou složku s projekty. Výsledky hledání zůstávají v paměti a nikam se neposílají."),
-            Section(title: "Nastavení",
-                    text: "Zvolené ukazatele, vzhled a intervaly se ukládají jen lokálně v předvolbách aplikace. Odstraněním aplikace a jejích předvoleb zmizí vše, co MacMetrix uložil."),
+            Section(title: String(localized: "Žádný sběr dat"),
+                    text: String(localized: "MacMetrix nemá vlastní server. Autor neshromažďuje, nevidí ani nezpracovává žádná vaše data. Aplikace neobsahuje reklamy, analytiku ani sledování a nesdílí žádná data s třetími stranami.")),
+            Section(title: String(localized: "Měření"),
+                    text: String(localized: "Hodnoty výkonu, názvy procesů a síťová rozhraní se čtou přímo ze systému vašeho Macu a drží se v paměti. Pro widget se ukládá poslední měření a průměry za poslední hodinu do sdílené složky aplikace na tomto Macu; nic se neodesílá.")),
+            Section(title: String(localized: "Úklid disku"),
+                    text: String(localized: "Průvodce prochází jen známé složky s cache a build výstupy a vámi zvolenou složku s projekty. Výsledky hledání zůstávají v paměti a nikam se neposílají.")),
+            Section(title: String(localized: "Nastavení"),
+                    text: String(localized: "Zvolené ukazatele, vzhled a intervaly se ukládají jen lokálně v předvolbách aplikace. Odstraněním aplikace a jejích předvoleb zmizí vše, co MacMetrix uložil.")),
         ]
         }
     }
@@ -183,7 +183,7 @@ struct LegalDocumentView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    Text("Platné od \(LegalDocument.effectiveDate.formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "cs_CZ"))))")
+                    Text("Platné od \(LegalDocument.effectiveDate.formatted(.dateTime.day().month(.wide).year()))")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

@@ -1,182 +1,205 @@
 <p align="center">
-  <img src="App/Assets.xcassets/AppIcon.appiconset/icon_256x256@2x.png" width="128" alt="Ikona MacMetrix">
+  <img src="App/Assets.xcassets/AppIcon.appiconset/icon_256x256@2x.png" width="128" alt="MacMetrix icon">
 </p>
 
 <h1 align="center">MacMetrix</h1>
 
-<p align="center">Výkon vašich Maců na první pohled.</p>
+<p align="center">Your Macs' performance at a glance.</p>
 
-MacMetrix ukazuje ve stavové liště, v oknech a ve widgetech na ploše vytížení
-**CPU, GPU, paměti, disku, sítě a baterie**.
+MacMetrix shows the load of the **CPU, GPU, memory, disk, network and battery** in the menu bar,
+in windows and in desktop widgets. The app is available in English and Czech; it follows the
+system language (or the per-app language in *System Settings → General → Language & Region*).
 
 <p align="center">
-  <img src="docs/screenshots/menubar.png" width="492" alt="Ukazatele MacMetrix ve stavové liště">
+  <img src="docs/screenshots/menubar.png" width="574" alt="MacMetrix indicators in the menu bar">
 </p>
 
 <table align="center">
   <tr>
-    <td valign="top"><img src="docs/screenshots/cpu.png" width="240" alt="Okno Procesor"></td>
-    <td valign="top"><img src="docs/screenshots/memory.png" width="240" alt="Okno Paměť"></td>
-    <td valign="top"><img src="docs/screenshots/network.png" width="240" alt="Okno Síť"></td>
+    <td valign="top"><img src="docs/screenshots/cpu.png" width="240" alt="CPU window"></td>
+    <td valign="top"><img src="docs/screenshots/memory.png" width="240" alt="Memory window"></td>
+    <td valign="top"><img src="docs/screenshots/network.png" width="240" alt="Network window"></td>
   </tr>
 </table>
 
-## Funkce
+## Features
 
-- **Samostatné ukazatele ve stavové liště** – CPU, GPU, RAM, Disk, Síť a Baterie mají každý
-  vlastní položku s pevnou šířkou, takže při změně hodnot neposkakují. Vzhled:
-  *Dvouřádkově*, *Ikona*, *Text* nebo *Sloupec*.
-- **Miniatura grafu** za každým ukazatelem (volitelně) – posledních 40 měření v barvě metriky.
-- **Okno každé metriky** po kliknutí na její ikonu: ukazatele, historie, detaily
-  a nejaktivnější procesy. CPU i s teplotou čipu, Disk s teplotou SSD.
-- **Monitor prostředků** – jako ve Windows: všechny procesy s CPU, vlákny, pamětí, diskem a sítí
-  (řazení podle sloupců, hledání) a záložka *Síť* s provozem procesů, TCP spojeními
-  a naslouchajícími porty. Záložka *Paměť* ukazuje rozložení fyzické paměti (aplikace,
-  pevně alokovaná, komprimovaná, mezipaměť, volná), tlak paměti a u procesů skutečnou spotřebu
-  (footprint jako v Monitoru aktivity), její špičku a stránky načtené z disku. Záložka *Soubory*
-  ukáže otevřené soubory a složky vybraných procesů nebo hledá podle cesty – třeba kdo brání
-  vysunutí disku. Procesy vybrané v *Přehledu* nebo *Paměti* filtrují záložky *Síť* a *Soubory*.
-  Z kontextové nabídky jde proces ukončit, vynutit jeho ukončení nebo ho zobrazit ve Finderu.
-  Vpravo jsou grafy za 1 minutu, 5 minut nebo hodinu: CPU, **historie každého jádra**
-  (efektivní E a výkonná P zvlášť), paměť, disk, síť, baterie a GPU. Když je vybraný jeden
-  proces, nad nimi jsou grafy jeho CPU, paměti, disku a sítě za posledních 5 minut.
-  Volitelně (*Nastavení → Údaje o systémových procesech*) doplní pomocná služba s právy
-  správce vlákna, paměť, disk a otevřené soubory i u procesů systému a jiných uživatelů.
-- **Úklid disku** – průvodce najde DerivedData, podporu zařízení, nedostupné simulátory,
-  cache SPM/CocoaPods/NuGet/npm/Homebrew/Gradle, bin/obj a .build v projektech, staré
-  dočasné soubory a logy. Nejdřív ukáže velikosti a nechá vybrat kategorie; mazat jde
-  trvale nebo do Koše.
-- **Baterie** (jen na MacBooku) – nabití, stav a zbývající čas, příkon systému, kondice, cykly
-  a teplota baterie. Na Macu bez baterie se ukazatel nezobrazuje.
-- **Widgety na plochu** (malý / střední / velký) s historií za poslední hodinu.
-- **Světlý a tmavý motiv** oken – podle systému (výchozí) nebo podle volby v Nastavení.
-- **Spouštění po přihlášení**, okno O aplikaci, Nastavení v samostatném okně.
+- **Separate menu bar indicators** – CPU, GPU, RAM, Disk, Network and Battery each have their own
+  fixed-width item, so they don't jump around as values change. Styles: *Two lines*, *Icon*,
+  *Text* or *Bar*.
+- **Sparkline** behind each indicator (optional) – the last 40 samples in the metric's color.
+- **A window for each metric** when you click its icon: gauges, history, details and the most
+  active processes. CPU includes the chip temperature, Disk the SSD temperature.
+- **Resource Monitor** – like the one in Windows: every process with CPU, threads, memory, disk
+  and network (sortable columns, search).
+  - *Memory* tab: the composition of physical memory (app, wired, compressed, cached, free),
+    memory pressure, and per process the real usage (footprint, as in Activity Monitor), its peak
+    and pages read in from disk.
+  - *Disk* tab: processes with disk activity, physical disks (read, write, operations per second,
+    active time, latency) and volumes with used space; the volume menu shows who is using it.
+  - *Network* tab: traffic per process, TCP connections and listening ports.
+  - *Files* tab: open files and folders of the selected processes, or a search by path – for
+    example, which process prevents a disk from being ejected.
+  - Processes selected in *Overview* or *Memory* filter the *Disk*, *Network* and *Files* tabs.
+    The context menu can quit or force quit a process or reveal it in Finder.
+  - On the right, graphs for 1 minute, 5 minutes or an hour: CPU, **the history of every core**
+    (efficiency E and performance P cores separately), memory, disk, network, battery and GPU.
+    With one process selected, graphs of its CPU, memory, disk and network over the last
+    5 minutes appear above them.
+  - Optionally (*Settings → System process details*), a helper service with administrator
+    privileges adds threads, memory, disk and open files for system and other users' processes.
+- **Disk cleanup** – a wizard finds DerivedData, device support files, unavailable simulators,
+  SPM/CocoaPods/NuGet/npm/Homebrew/Gradle caches, bin/obj and .build folders in projects, old
+  temporary files and logs. It shows the sizes first and lets you pick categories; files can be
+  deleted permanently or moved to the Trash.
+- **Battery** (MacBook only) – charge, state and time remaining, system power draw, health,
+  cycle count and battery temperature. On Macs without a battery the indicator is hidden.
+- **Desktop widgets** (small / medium / large) with the history of the last hour.
+- **Light and dark appearance** of the windows – following the system (default) or set in Settings.
+- **Launch at login**, an About window, Settings in a separate window.
 
-## Snímky obrazovky
+## Screenshots
+
+**Resource Monitor** – all processes, graphs of the CPU, every core, memory, disk and network.
+
+![Resource Monitor](docs/screenshots/resources.png)
+
+**Resource Monitor – Disk** – processes with disk activity, physical disks and volumes.
+
+![Resource Monitor – Disk tab](docs/screenshots/resources-disk.png)
 
 <table>
   <tr>
-    <th>Okno Disku</th>
-    <th>Úklid disku</th>
-    <th>Nastavení</th>
+    <th>Disk window</th>
+    <th>Disk cleanup</th>
+    <th>Settings</th>
   </tr>
   <tr>
-    <td valign="top"><img src="docs/screenshots/disk.png" width="240" alt="Okno Disk"></td>
-    <td valign="top"><img src="docs/screenshots/cleanup.png" width="340" alt="Průvodce úklidem disku"></td>
-    <td valign="top"><img src="docs/screenshots/settings.png" width="240" alt="Nastavení"></td>
+    <td valign="top"><img src="docs/screenshots/disk.png" width="240" alt="Disk window"></td>
+    <td valign="top"><img src="docs/screenshots/cleanup.png" width="340" alt="Disk cleanup wizard"></td>
+    <td valign="top"><img src="docs/screenshots/settings.png" width="240" alt="Settings"></td>
   </tr>
 </table>
 
-## Požadavky
+## Requirements
 
-- macOS 14 Sonoma nebo novější. Teploty jen na Macu s Apple Silicon.
-- Pro sestavení Xcode 16+ a [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
+- macOS 14 Sonoma or later. Temperatures only on Apple Silicon Macs.
+- To build: Xcode 16+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
 
-## Instalace z DMG (pro uživatele)
+## Installing from the DMG (for users)
 
-1. Stáhněte `MacMetrix-<verze>.dmg` ze stránky
-   [Releases](https://github.com/kolarcik/MacMetrix/releases).
-2. Otevřete DMG a přetáhněte **MacMetrix** do složky **Aplikace** (starou verzi nahraďte).
-3. Spusťte MacMetrix ze složky Aplikace. Ve stavové liště se objeví ukazatele.
+1. Download `MacMetrix-<version>.dmg` from the
+   [Releases](https://github.com/kolarcik/MacMetrix/releases) page.
+2. Open the DMG and drag **MacMetrix** to the **Applications** folder (replace the old version).
+3. Launch MacMetrix from the Applications folder. The indicators appear in the menu bar.
 
-Oficiální DMG je podepsané certifikátem Developer ID a notarizované u Apple,
-takže se otevře bez varování. Obsahuje univerzální aplikaci pro Macy s Apple Silicon i Intel.
+The official DMG is signed with a Developer ID certificate and notarized by Apple, so it opens
+without warnings. It contains a universal app for both Apple Silicon and Intel Macs.
 
-Při prvním spuštění se MacMetrix zaregistruje jako položka při přihlášení – macOS
-zobrazí notifikaci. Vypnout to jde v Nastavení aplikace nebo v
-*Nastavení systému → Obecné → Položky při přihlášení*.
+On first launch MacMetrix registers itself as a login item – macOS shows a notification.
+You can turn this off in the app's Settings or in *System Settings → General → Login Items*.
 
-## Instalace přes ZIP (vzdálené Macy)
+## Installing from a ZIP (remote Macs)
 
-Pro instalaci na vzdálené Macy přes `scp` / SSH je k dispozici ZIP s instalačním skriptem:
+For installing on remote Macs over `scp` / SSH there is a ZIP with an install script:
 
-1. Sestavte balíček `./scripts/release.sh` (viz níže) a zkopírujte `dist/MacMetrix.zip`
-   a `dist/install.sh` na stroj.
-2. Spusťte **pod uživatelem, který je na Macu přihlášený v GUI** (třeba přes Sdílení obrazovky):
+1. Build the package with `./scripts/release.sh` (see below) and copy `dist/MacMetrix.zip`
+   and `dist/install.sh` to the machine.
+2. Run it **as the user who is logged in to the Mac's GUI** (for example via Screen Sharing):
    ```bash
    ./install.sh MacMetrix.zip
    ```
-   Skript aplikaci nainstaluje do složky Aplikace, ukončí starou verzi i její widget a spustí novou.
-3. Aby aplikace běžela hned po restartu, musí mít Mac zapnuté
-   **automatické přihlášení** (*Nastavení systému → Uživatelé a skupiny → Automaticky
-   přihlásit*) – položka při přihlášení se spouští až po přihlášení uživatele.
+   The script installs the app to the Applications folder, quits the old version and its
+   widget, and launches the new one.
+3. For the app to run right after a restart, the Mac needs **automatic login** turned on
+   (*System Settings → Users & Groups → Automatically log in as*) – login items only start
+   after a user logs in.
 
-## Ovládání
+## Usage
 
-- **Klik na ukazatel** ve stavové liště otevře okno metriky; otevřené okno jiné metriky se zavře.
-- Ve spodní liště okna jsou tlačítka **Monitor prostředků**, **O aplikaci**, **Nastavení** a **Ukončit**.
-- **Nastavení:** motiv oken (podle systému, světlý, tmavý), spouštění po přihlášení, interval měření, interval obnovení widgetu,
-  které ukazatele zobrazit, jejich vzhled a miniatura grafu, údaje o systémových procesech
-  pro Monitor prostředků.
-- **⌘ + tažení** ukazatele přeskládá pořadí; vytažením ze stavové lišty se ukazatel odebere.
-  Když není vybraný žádný, zobrazí se jen ikona aplikace.
-- **Monitor prostředků** se otevře tlačítkem *Monitor prostředků* ve spodní liště okna.
-- **Úklid disku** se otevře z okna Disku tlačítkem *Uvolnit místo na disku…*
-- **Widget** přidáte pravým klikem na plochu → *Upravit widgety* → MacMetrix.
+- **Clicking an indicator** in the menu bar opens the metric's window; an open window of
+  another metric closes.
+- The bottom bar of the window has the **Resource Monitor**, **About**, **Settings** and
+  **Quit** buttons.
+- **Settings:** window appearance (system, light, dark), launch at login, sampling interval,
+  widget refresh interval, which indicators to show, their style and sparkline, system process
+  details for the Resource Monitor.
+- **⌘ + drag** reorders the indicators; dragging one out of the menu bar removes it. When none
+  is selected, only the app icon is shown.
+- **Resource Monitor** opens with the *Resource Monitor* button in the window's bottom bar.
+- **Disk cleanup** opens from the Disk window with *Free up disk space…*
+- **Widget:** right-click the desktop → *Edit Widgets* → MacMetrix.
 
-### Co se měří
+### What is measured
 
-| Metrika | Zdroj | Poznámka |
+| Metric | Source | Notes |
 |---|---|---|
-| CPU | `host_processor_info`, IOHID teplotní senzory | celkem, user/system, po jádrech, load average; teplota (průměr / max `PMU tdie*`, jen Apple Silicon) |
-| GPU | IOKit `IOAccelerator → PerformanceStatistics` | „Device Utilization %“ + využitá paměť GPU |
-| RAM | `host_statistics64` | „Použitá paměť“ jako v Monitoru aktivity (app + wired + komprimovaná), swap |
-| Disk | `/` resource values, IOKit `IOBlockStorageDriver` | obsazenost systémového svazku + čtení/zápis B/s; teplota SSD |
-| Baterie | IOKit `AppleSmartBattery` | nabití, nabíjení / adaptér, zbývající čas, kondice (plná kapacita / návrhová), cykly, teplota, výkon baterie (napětí × proud), příkon systému (telemetrie Apple Silicon) |
-| Síť | `sysctl IFMIB_IFDATA` (64bit čítače) | zvlášť **IN ↓** (modře) / **OUT ↑** (červeně); počítají se jen rozhraní `en*`, takže loopback, VPN a bridge VM (např. tart) se nezapočítají dvakrát. Když systém na `en*` příchozí bajty nehlásí (stává se s VPN / síťovými rozšířeními), bere se IN z VPN tunelů a v legendě je „(VPN)“. |
+| CPU | `host_processor_info`, IOHID temperature sensors | total, user/system, per core, load average; temperature (average / max of `PMU tdie*`, Apple Silicon only) |
+| GPU | IOKit `IOAccelerator → PerformanceStatistics` | "Device Utilization %" + GPU memory in use |
+| RAM | `host_statistics64` | "Memory Used" as in Activity Monitor (app + wired + compressed), swap |
+| Disk | `/` resource values, IOKit `IOBlockStorageDriver` | used space of the system volume + read/write B/s; SSD temperature |
+| Battery | IOKit `AppleSmartBattery` | charge, charging / adapter, time remaining, health (full / design capacity), cycles, temperature, battery power (voltage × current), system power draw (Apple Silicon telemetry) |
+| Network | `sysctl IFMIB_IFDATA` (64-bit counters) | **IN ↓** (blue) / **OUT ↑** (red) separately; only `en*` interfaces are counted, so loopback, VPN and VM bridges (e.g. tart) aren't counted twice. When the system reports no inbound bytes on `en*` (happens with VPNs / network extensions), IN is taken from the VPN tunnels and the legend says "(VPN)". |
 
-Ukazatel sítě je vztažený k 1 Gbit/s (125 MB/s). Procesy se čtou přes `ps`, síťové
-procesy přes `nettop`, diskové přes `proc_pid_rusage` (jen procesy přihlášeného uživatele).
-Monitor prostředků bere spojení a porty z `nettop` (vidí i systémové procesy); počet vláken a disk
-zná jen u procesů přihlášeného uživatele, u ostatních ukazuje „–“. Totéž platí pro footprint
-paměti (`proc_pid_rusage`) a otevřené soubory (`proc_pidinfo` / `proc_pidfdinfo`). Měří jen při otevřeném okně.
+The network gauge is relative to 1 Gbit/s (125 MB/s). Processes are read with `ps`, network
+processes with `nettop`, disk processes with `proc_pid_rusage` (only the logged-in user's
+processes). The Resource Monitor takes connections and ports from `nettop` (it sees system
+processes too) and physical disks from IOKit `IOBlockStorageDriver` statistics; thread counts,
+disk activity, memory footprint (`proc_pid_rusage`) and open files (`proc_pidinfo` /
+`proc_pidfdinfo`) are only available for the logged-in user's processes, others show "–"
+unless the helper service is on. It only samples while its window is open.
 
-### Údaje o systémových procesech (pomocná služba)
+### System process details (helper service)
 
-Bez práv správce macOS neprozradí vlákna, paměť, disk ani otevřené soubory procesů jiných
-uživatelů a systému. Přepínač *Nastavení → Údaje o systémových procesech* zaregistruje přes
-`SMAppService.daemon` pomocnou službu `MacMetrixHelper` (launchd daemon, běží jako root).
-macOS ji nechá spustit až po schválení v *Nastavení systému → Obecné → Položky při přihlášení*.
+Without administrator privileges macOS doesn't reveal the threads, memory, disk activity or open
+files of system and other users' processes. By default everything is off and nothing is
+registered. The *Settings → System process details* switch registers the `MacMetrixHelper`
+helper service (a launchd daemon running as root) with `SMAppService.daemon`. macOS only lets it
+run after you approve it in *System Settings → General → Login Items*.
 
-- Služba **jen čte** (`proc_pid_rusage`, `proc_pidinfo`, `proc_pidfdinfo`) – nemá žádnou
-  operaci, která by něco měnila, mazala nebo posílala signály procesům.
-- Přijme spojení jen od aplikace `tech.synot.MacMetrix` podepsané stejným týmem (kontrola
-  podpisu přes `setCodeSigningRequirement`); aplikace stejně ověřuje podpis služby.
-- Spouští ji launchd na požádání a po dvou minutách bez dotazu sama skončí.
-- Vypnutím přepínače se služba odregistruje.
+- The service **only reads** (`proc_pid_rusage`, `proc_pidinfo`, `proc_pidfdinfo`) – it has no
+  operation that changes or deletes anything or sends signals to processes.
+- It only accepts connections from the `tech.synot.MacMetrix` app signed by the same team
+  (code signing check via `setCodeSigningRequirement`); the app checks the service's signature
+  the same way.
+- launchd starts it on demand and it quits by itself after two minutes without a request.
+- Turning the switch off unregisters the service.
 
-## Řešení potíží
+## Troubleshooting
 
-**Widget ukazuje stará data**
-Aplikace v nastaveném intervalu (výchozí 10 s) zapíše data do sdíleného App Group
-kontejneru a požádá WidgetKit o obnovení. **macOS ale obnovování widgetů omezuje**,
-takže widget nemusí být aktuální na sekundu – ukazuje čas posledního měření. Kdy se
-widget naposledy obnovil, je vidět v Nastavení. Pro živá data slouží okna metrik
-a Monitor prostředků. Když aplikace neběží, widget si změří hodnoty sám (bez historie).
+**The widget shows old data**
+At the set interval (10 s by default) the app writes data to the shared App Group container and
+asks WidgetKit to reload. **macOS throttles widget reloads**, so the widget may not be up to the
+second – it shows the time of the last sample. When the widget last reloaded is shown in
+Settings. For live data use the metric windows and the Resource Monitor. When the app isn't
+running, the widget samples values itself (without history).
 
-Po instalaci nové verze může běžet stará widget extension. Pomůže:
+After installing a new version, the old widget extension may still be running. This helps:
 
 ```bash
 pkill -f MacMetrixWidget.appex
 ```
 
-**Ukazatel zmizel ze stavové lišty**
-Když na liště není místo, macOS položky skrývá. V Nastavení zůstane ukazatel zapnutý
-a po uvolnění místa se vrátí. Když jste odebrali všechny, zobrazí se ikona aplikace;
-ukazatele zapnete v Nastavení, případně je obnoví nové otevření MacMetrix ze složky Aplikace.
+**An indicator disappeared from the menu bar**
+When the menu bar runs out of space, macOS hides items. The indicator stays enabled in Settings
+and comes back once there is room. If you removed all of them, the app icon is shown; turn
+indicators on in Settings, or reopen MacMetrix from the Applications folder to restore them.
 
-**Teplota se nezobrazuje**
-Teploty se čtou z teplotních senzorů Apple Silicon. Na Macu s Intelem nejsou k dispozici.
+**The temperature isn't shown**
+Temperatures are read from Apple Silicon temperature sensors. They aren't available on Intel Macs.
 
-## Známá omezení
+## Known limitations
 
-- macOS omezuje, jak často se widgety obnovují.
-- Diskové procesy se zjišťují jen pro procesy přihlášeného uživatele.
-- Teploty se čtou přes neveřejné systémové rozhraní; jejich dostupnost se může s verzemi macOS měnit.
+- macOS limits how often widgets reload.
+- Without the helper service, disk activity of processes is only known for the logged-in
+  user's processes.
+- Temperatures are read through a private system interface; their availability may change
+  between macOS versions.
 
-## Vývoj
+## Development
 
-Projekt je SwiftUI aplikace s WidgetKit extension, definovaná v `project.yml` pro XcodeGen.
+The project is a SwiftUI app with a WidgetKit extension and a helper tool, defined in
+`project.yml` for XcodeGen.
 
 ```bash
 git clone https://github.com/kolarcik/MacMetrix.git
@@ -185,62 +208,75 @@ xcodegen generate
 open MacMetrix.xcodeproj
 ```
 
-Podepisuje se certifikátem **Developer ID Application** týmu `3ZN9TSG9S7`
-(`DEVELOPMENT_TEAM` v `project.yml`). App Group má tvar `<TEAM>.tech.synot.MacMetrix`,
-takže nepotřebuje provisioning profil.
+It is signed with the **Developer ID Application** certificate of team `3ZN9TSG9S7`
+(`DEVELOPMENT_TEAM` in `project.yml`). The App Group has the form `<TEAM>.tech.synot.MacMetrix`,
+so no provisioning profile is needed.
+
+UI texts are written in Czech in the code (the development language) and translated to English
+in the String Catalog `Shared/Localizable.xcstrings`. Untranslated languages fall back to English
+(`CFBundleDevelopmentRegion` is `en`), so the catalog also keeps a Czech value for every string –
+give new strings both a Czech and an English value. Xcode adds new strings to the catalog when you
+build; from the command line use (the setting works around the helper's embedded Info.plist):
+
+```bash
+xcodebuild -exportLocalizations -project MacMetrix.xcodeproj -localizationPath /tmp/loc \
+  -exportLanguage en -exportLanguage cs CREATE_INFOPLIST_SECTION_IN_BINARY=NO
+xcodebuild -importLocalizations -project MacMetrix.xcodeproj -localizationPath /tmp/loc/en.xcloc \
+  CREATE_INFOPLIST_SECTION_IN_BINARY=NO
+```
 
 ```
-App/       aplikace ve stavové liště: ukazatele, okna metrik, Monitor prostředků,
-           úklid disku, nastavení, O aplikaci, teplotní senzory, procesy
-Helper/    pomocná služba s právy správce (jen čtení) a čtení údajů o procesech sdílené s aplikací
-LaunchDaemons/  launchd plist pomocné služby (kopíruje se do Contents/Library/LaunchDaemons)
+App/       menu bar app: indicators, metric windows, Resource Monitor,
+           disk cleanup, settings, About, temperature sensors, processes
+Helper/    helper service with administrator privileges (read-only) and process readers shared with the app
+LaunchDaemons/  launchd plist of the helper service (copied to Contents/Library/LaunchDaemons)
 Widget/    WidgetKit extension
-Shared/    měření metrik, sdílený stav, společné SwiftUI komponenty (ukazatele, grafy)
+Shared/    metric sampling, shared state, common SwiftUI components (gauges, charts), String Catalog
 scripts/
-├── make-dmg.sh    – instalační DMG pro distribuci
-├── release.sh     – ZIP pro instalaci na vzdálené Macy
-├── install.sh     – instalace ZIPu na stroji
-└── make-icon.swift – generátor ikony aplikace
-project.yml        – definice projektu pro XcodeGen
+├── make-dmg.sh    – installer DMG for distribution
+├── release.sh     – ZIP for installing on remote Macs
+├── install.sh     – installs the ZIP on a machine
+└── make-icon.swift – app icon generator
+project.yml        – project definition for XcodeGen
 ```
 
-### Vytvoření instalačního DMG
+### Building the installer DMG
 
 ```bash
 ./scripts/make-dmg.sh
 ```
 
-Vytvoří `dist/MacMetrix-<verze>.dmg` (verze z `MARKETING_VERSION` v `project.yml`):
-univerzální Release build, podpis Developer ID s hardened runtime, DMG se zástupcem
-složky Aplikace a ikonou svazku.
+Creates `dist/MacMetrix-<version>.dmg` (version from `MARKETING_VERSION` in `project.yml`):
+a universal Release build, Developer ID signature with hardened runtime, a DMG with an
+Applications folder shortcut and a volume icon.
 
-Aby šla aplikace stažená z internetu otevřít bez varování, musí být notarizovaná u Apple:
+For an app downloaded from the internet to open without warnings, it has to be notarized by Apple:
 
-1. Jednou uložte přihlašovací údaje pro notarizaci do Klíčenky
-   (heslo pro aplikace z [account.apple.com](https://account.apple.com)):
+1. Store the notarization credentials in the Keychain once
+   (an app-specific password from [account.apple.com](https://account.apple.com)):
    ```bash
-   xcrun notarytool store-credentials <profil> --apple-id <apple-id> --team-id 3ZN9TSG9S7
+   xcrun notarytool store-credentials <profile> --apple-id <apple-id> --team-id 3ZN9TSG9S7
    ```
-2. Sestavte DMG s notarizací:
+2. Build the DMG with notarization:
    ```bash
-   NOTARY_PROFILE=<profil> ./scripts/make-dmg.sh
+   NOTARY_PROFILE=<profile> ./scripts/make-dmg.sh
    ```
 
-Skript DMG odešle k notarizaci, připojí k němu lístek a ověří ho Gatekeeperem.
+The script submits the DMG for notarization, staples the ticket and verifies it with Gatekeeper.
 
-### Balíček pro vzdálené Macy
+### Package for remote Macs
 
 ```bash
-NOTARY_PROFILE=<profil> ./scripts/release.sh
+NOTARY_PROFILE=<profile> ./scripts/release.sh
 ```
 
-Vytvoří `dist/MacMetrix.zip` a `dist/install.sh` (viz [Instalace přes ZIP](#instalace-přes-zip-vzdálené-macy)).
+Creates `dist/MacMetrix.zip` and `dist/install.sh` (see [Installing from a ZIP](#installing-from-a-zip-remote-macs)).
 
-### Snímky obrazovky
+### Screenshots
 
-Snímky v `docs/screenshots` jsou pořízené v ukázkovém režimu, který místo názvu Macu,
-IP adres a názvů procesů ukazuje obecné údaje (hodnoty měření zůstávají skutečné):
+The screenshots in `docs/screenshots` are taken in demo mode, which shows generic values instead
+of the Mac's name, IP addresses and process names (the measured values stay real):
 
 ```bash
-open /Applications/MacMetrix.app --args -demoMode YES
+open /Applications/MacMetrix.app --args -demoMode YES -AppleLanguages "(en)"
 ```

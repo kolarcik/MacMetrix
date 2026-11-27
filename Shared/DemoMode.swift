@@ -19,11 +19,33 @@ enum DemoMode {
         return ["xcodebuild", "swift-frontend", "clang", "ld", "dotnet", "git", "mds_stores", "node"]
     }
 
+    /// Generic process names for the Resource Monitor, assigned by pid.
+    static let resourceProcessNames = [
+        "Xcode", "Simulator", "Safari", "swift-frontend", "clang", "node", "dotnet", "Finder", "Mail",
+        "Terminal", "Preview", "Notes", "Music", "Calendar", "Photos", "Dock", "Spotlight", "git", "ssh",
+        "sourcekit-lsp", "xcodebuild", "ld", "lldb-rpc-server", "zsh", "Safari Web Content", "Xcode Helper",
+    ]
+
+    /// Generic names for processes of root and system users.
+    static let systemProcessNames = [
+        "WindowServer", "launchd", "logd", "mds_stores", "mds", "coreaudiod", "cfprefsd", "trustd",
+        "configd", "powerd", "syslogd", "notifyd", "distnoted", "bluetoothd", "locationd", "opendirectoryd",
+        "runningboardd", "sandboxd", "securityd", "diskarbitrationd",
+    ]
+
     private static let bundles = [
         "Xcode": "com.apple.dt.Xcode",
         "Simulator": "com.apple.iphonesimulator",
         "Safari": "com.apple.Safari",
         "Screen Sharing": "com.apple.ScreenSharing",
+        "Finder": "com.apple.finder",
+        "Mail": "com.apple.mail",
+        "Terminal": "com.apple.Terminal",
+        "Preview": "com.apple.Preview",
+        "Notes": "com.apple.Notes",
+        "Music": "com.apple.Music",
+        "Calendar": "com.apple.iCal",
+        "Photos": "com.apple.Photos",
     ]
 
     /// Ikona ukázkového procesu: aplikace podle názvu, jinak nic (použije se obecná ikona).

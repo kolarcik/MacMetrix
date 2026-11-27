@@ -3,7 +3,8 @@ import SwiftUI
 /// Resource Monitor window, modelled on the Windows one: every process with CPU, memory, disk and
 /// network; a memory tab with footprints and the RAM composition; a network tab with per-process
 /// traffic, TCP connections and listening ports; and a files tab showing who holds which file open.
-/// Processes selected in Přehled or Paměť filter the Síť and Soubory tabs (like the checkboxes in Windows).
+/// A disk tab with per-process disk activity, physical disks and volumes.
+/// Processes selected in Přehled or Paměť filter the Disk, Síť and Soubory tabs (like the checkboxes in Windows).
 /// On the right, graphs of CPU (total and every core), memory, disk, network and GPU – this window
 /// replaced the old dashboard.
 struct ResourceMonitorView: View {
@@ -16,10 +17,20 @@ struct ResourceMonitorView: View {
     @State private var error: String?
 
     enum Tab: String, CaseIterable, Identifiable {
-        case overview = "Přehled", memory = "Paměť", network = "Síť", files = "Soubory"
+        case overview = "Přehled", memory = "Paměť", disk = "Disk", network = "Síť", files = "Soubory"
         var id: String { rawValue }
+        /// Shown in the picker; the raw value is stored in defaults and must not change.
+        var title: String {
+            switch self {
+            case .overview: String(localized: "Přehled")
+            case .memory: String(localized: "Paměť")
+            case .disk: String(localized: "Disk")
+            case .network: String(localized: "Síť")
+            case .files: String(localized: "Soubory")
+            }
+        }
         /// Tabs whose tables are filtered by the processes selected elsewhere.
-        var isFiltered: Bool { self == .network || self == .files }
+        var isFiltered: Bool { self == .disk || self == .network || self == .files }
     }
 
     struct EndRequest: Identifiable {
@@ -42,6 +53,13 @@ struct ResourceMonitorView: View {
                         ProcessesTable(rows: filteredProcesses, selection: $selection, actions: actions)
                     case .memory:
                         MemoryTab(rows: filteredProcesses, selection: $selection, actions: actions)
+                    case .disk:
+                        DiskTab(monitor: monitor, filter: filterPids, search: search, actions: actions,
+                                showFiles: { path in
+                                    selection.removeAll()
+                                    search = path
+                                    tab = .files
+                                })
                     case .network:
                         NetworkTab(monitor: monitor, filter: filterPids, search: search, actions: actions)
                     case .files:
@@ -71,12 +89,13 @@ struct ResourceMonitorView: View {
         .confirmationDialog(pendingEnd.map(title) ?? "", isPresented: Binding(get: { pendingEnd != nil },
                                                                               set: { if !$0 { pendingEnd = nil } }),
                             presenting: pendingEnd) { req in
-            Button(req.force ? "Vynutit ukončení" : "Ukončit", role: .destructive) {
+            Button(req.force ? String(localized: "Vynutit ukončení") : String(localized: "Ukončit"), role: .destructive) {
                 error = ResourceMonitor.end(req.pids, paths: req.paths, force: req.force)
             }
             Button("Zrušit", role: .cancel) {}
         } message: { req in
-            Text(req.force ? "Neuložená data v procesu se ztratí." : "Aplikace dostanou možnost uložit data a skončit samy.")
+            Text(req.force ? String(localized: "Neuložená data v procesu se ztratí.")
+                 : String(localized: "Aplikace dostanou možnost uložit data a skončit samy."))
         }
         .alert("Proces se nepodařilo ukončit", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
             Button("OK") {}
@@ -86,8 +105,12 @@ struct ResourceMonitorView: View {
     }
 
     private func title(_ req: EndRequest) -> String {
-        let what = req.names.count == 1 ? "„\(req.names[0])“" : "\(req.names.count) procesy"
-        return (req.force ? "Vynutit ukončení " : "Ukončit ") + what + "?"
+        if req.names.count == 1 {
+            let name = req.names[0]
+            return req.force ? String(localized: "Vynutit ukončení „\(name)“?") : String(localized: "Ukončit „\(name)“?")
+        }
+        let count = req.names.count
+        return req.force ? String(localized: "Vynutit ukončení \(count) procesy?") : String(localized: "Ukončit \(count) procesy?")
     }
 
     // MARK: Header & footer
@@ -95,16 +118,16 @@ struct ResourceMonitorView: View {
     private var header: some View {
         HStack(spacing: 12) {
             Picker("", selection: $tab) {
-                ForEach(Tab.allCases) { Text($0.rawValue).tag($0) }
+                ForEach(Tab.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .frame(width: 330)
+            .frame(width: 400)
 
             if !filterPids.isEmpty && tab.isFiltered {
                 HStack(spacing: 4) {
                     Image(systemName: "line.3.horizontal.decrease.circle.fill").foregroundStyle(.tint)
-                    Text("Jen: " + filterNames).lineLimit(1).truncationMode(.tail)
+                    Text("Jen: \(filterNames)").lineLimit(1).truncationMode(.tail)
                     Button {
                         selection.removeAll()
                     } label: {
@@ -120,7 +143,8 @@ struct ResourceMonitorView: View {
                 .frame(maxWidth: 320, alignment: .leading)
             }
             Spacer()
-            TextField(tab == .files ? "Hledat cestu nebo proces…" : "Hledat proces, PID, port…", text: $search)
+            TextField(tab == .files ? String(localized: "Hledat cestu nebo proces…") : String(localized: "Hledat proces, PID, port…"),
+                      text: $search)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 220)
         }
@@ -200,7 +224,9 @@ struct ProcessActions {
         let pids = pids.sorted()
         let rows = processes.filter { pids.contains($0.pid) }
         if !pids.isEmpty {
-            Button(pids.count == 1 ? "Ukončit proces" : "Ukončit \(pids.count) procesy") { end(pids, false) }
+            Button(pids.count == 1 ? String(localized: "Ukončit proces") : String(localized: "Ukončit \(pids.count) procesy")) {
+                end(pids, false)
+            }
             Button("Vynutit ukončení") { end(pids, true) }
             Divider()
             if !network {
@@ -337,14 +363,14 @@ private struct MemorySummary: View {
 
     private var pressure: (String, Color) {
         switch store.current.memPressure {
-        case 2: ("Zvýšený", .yellow)
-        case 4: ("Kritický", .red)
-        case 1: ("Normální", .green)
+        case 2: (String(localized: "Zvýšený"), .yellow)
+        case 4: (String(localized: "Kritický"), .red)
+        case 1: (String(localized: "Normální"), .green)
         default: ("–", .secondary)
         }
     }
 
-    private func legend(_ title: String, _ bytes: UInt64, _ color: Color) -> some View {
+    private func legend(_ title: LocalizedStringKey, _ bytes: UInt64, _ color: Color) -> some View {
         HStack(spacing: 4) {
             RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 10, height: 10)
             Text(title).foregroundStyle(.secondary)
@@ -377,7 +403,8 @@ private struct FilesTab: View {
         } else {
             let rows = files.filter { f in
                 (filter.isEmpty || filter.contains(f.pid))
-                    && (query.isEmpty || f.path.localizedCaseInsensitiveContains(query)
+                    // path + "/" so that a folder query ending in "/" also finds the folder itself (working directory).
+                    && (query.isEmpty || (f.path + "/").localizedCaseInsensitiveContains(query)
                         || f.name.localizedCaseInsensitiveContains(query) || String(f.pid) == query)
             }
             VStack(alignment: .leading, spacing: 0) {
@@ -422,6 +449,182 @@ private struct FilesTab: View {
     }
 }
 
+// MARK: - Disk
+
+private struct DiskTab: View {
+    @ObservedObject var monitor: ResourceMonitor
+    var filter: Set<Int32>
+    var search: String
+    var actions: ProcessActions
+    /// Opens Soubory searching for a path (who holds a volume open).
+    var showFiles: (String) -> Void
+    @State private var procSort = [KeyPathComparator(\ProcessRow.disk, order: .reverse)]
+    @State private var diskSort: [KeyPathComparator<PhysicalDisk>] = []
+    @State private var volumeSort: [KeyPathComparator<VolumeInfo>] = []
+    @State private var volumeSelection = Set<String>()
+
+    var body: some View {
+        VSplitView {
+            section("Procesy s diskovou aktivitou", count: processes.count, note: monitor.helperActive ? nil
+                    : String(localized: "Jen procesy přihlášeného uživatele")) {
+                Table(processes.sorted(using: procSort), sortOrder: $procSort) {
+                    TableColumn("Proces", value: \.name) { r in ProcessName(pid: r.pid, name: r.name) }
+                        .width(min: 140, ideal: 220)
+                    TableColumn("PID", value: \.pid) { r in Text(String(r.pid)).monospacedDigit() }
+                        .width(min: 44, ideal: 56)
+                    TableColumn("Čtení", value: \.diskRead) { r in Rate(value: r.diskRead) }
+                    TableColumn("Zápis", value: \.diskWrite) { r in Rate(value: r.diskWrite) }
+                    TableColumn("Celkem", value: \.disk) { r in Rate(value: r.disk) }
+                }
+                .contextMenu(forSelectionType: Int32.self) { pids in actions.menu(pids) }
+            }
+            section("Disky", count: disks.count, note: hiddenImages > 0
+                    ? String(localized: "\(hiddenImages) nepoužívaných obrazů disků skryto") : nil) {
+                Table(diskSort.isEmpty ? disks : disks.sorted(using: diskSort), sortOrder: $diskSort) {
+                    TableColumn("Disk", value: \.name) { d in
+                        HStack(spacing: 6) {
+                            Image(systemName: d.connection == .diskImage ? "opticaldisc" : d.connection == .internal
+                                  ? "internaldrive" : "externaldrive")
+                                .foregroundStyle(.secondary)
+                            Text(d.name).lineLimit(1)
+                        }
+                        .help(Text(verbatim: "\(d.name) (\(d.bsdName))"))
+                    }
+                    .width(min: 140, ideal: 190)
+                    TableColumn("Zařízení", value: \.bsdName) { d in Text(d.bsdName).foregroundStyle(.secondary) }
+                        .width(min: 50, ideal: 60)
+                    TableColumn("Připojení", value: \.connectionName) { d in Text(d.connectionName).foregroundStyle(.secondary) }
+                        .width(min: 60, ideal: 90)
+                    TableColumn("Čtení", value: \.readRate) { d in Rate(value: d.readRate) }
+                        .width(min: 60, ideal: 76)
+                    TableColumn("Zápis", value: \.writeRate) { d in Rate(value: d.writeRate) }
+                        .width(min: 60, ideal: 76)
+                    TableColumn("Operace/s", value: \.readOps) { d in
+                        Num(text: String(Int((d.readOps + d.writeOps).rounded())), zero: d.readOps + d.writeOps < 0.5)
+                            .help("Čtení \(Int(d.readOps.rounded()))/s · zápis \(Int(d.writeOps.rounded()))/s")
+                    }
+                    .width(min: 56, ideal: 70)
+                    TableColumn("Aktivní čas", value: \.activeTime) { d in
+                        UsageBar(fraction: d.activeTime, text: Fmt.percent(d.activeTime), color: Metric.disk.color)
+                            .help("Jak velkou část času disk vyřizoval požadavky. Rychlé SSD jich vyřizují víc najednou, proto nejvýš 100 %.")
+                    }
+                    .width(min: 80, ideal: 110)
+                    TableColumn("Odezva", value: \.latencySort) { d in
+                        Num(text: d.latency.map { String(format: $0 < 10 ? "%.2f ms" : "%.0f ms", $0) } ?? "–", zero: d.latency == nil)
+                            .help("Průměrná doba jedné operace")
+                    }
+                    .width(min: 56, ideal: 70)
+                    TableColumn("Velikost", value: \.size) { d in Num(text: Fmt.bytes(d.size), zero: false) }
+                        .width(min: 60, ideal: 76)
+                }
+            }
+            section("Svazky", count: volumes.count, note: nil) {
+                Table(volumes.sorted(using: volumeSort), selection: $volumeSelection, sortOrder: $volumeSort) {
+                    TableColumn("Svazek", value: \.name) { v in
+                        HStack(spacing: 6) {
+                            Image(nsImage: NSWorkspace.shared.icon(forFile: v.mountPoint))
+                                .resizable().frame(width: 16, height: 16)
+                            Text(v.name).lineLimit(1)
+                        }
+                        .help(v.mountPoint)
+                    }
+                    .width(min: 120, ideal: 170)
+                    TableColumn("Zařízení", value: \.device) { v in Text(v.device).foregroundStyle(.secondary).lineLimit(1) }
+                        .width(min: 60, ideal: 80)
+                    TableColumn("Formát", value: \.format) { v in Text(v.format).foregroundStyle(.secondary).lineLimit(1) }
+                        .width(min: 60, ideal: 110)
+                    TableColumn("Kapacita", value: \.total) { v in Num(text: v.total > 0 ? Fmt.bytes(v.total) : "–", zero: v.total == 0) }
+                        .width(min: 60, ideal: 76)
+                    TableColumn("Volno", value: \.free) { v in Num(text: v.total > 0 ? Fmt.bytes(v.free) : "–", zero: v.total == 0) }
+                        .width(min: 60, ideal: 76)
+                    TableColumn("Obsazeno", value: \.usedFraction) { v in
+                        UsageBar(fraction: v.usedFraction, text: Fmt.percent(v.usedFraction),
+                                 color: v.usedFraction > 0.9 ? .red : v.usedFraction > 0.75 ? .orange : .accentColor)
+                    }
+                    .width(min: 80, ideal: 120)
+                }
+                .contextMenu(forSelectionType: String.self) { ids in
+                    if let v = volumes.first(where: { ids.contains($0.id) }) {
+                        // Trailing "/": /Volumes/USB must not also match /Volumes/USB 2.
+                        Button("Kdo svazek používá") { showFiles(v.mountPoint + "/") }
+                            .disabled(v.mountPoint == "/")
+                        Button("Zobrazit ve Finderu") {
+                            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: v.mountPoint)])
+                        }
+                        Button("Kopírovat cestu") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(v.mountPoint, forType: .string)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func section(_ title: LocalizedStringKey, count: Int, note: String?, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text(title).font(.headline)
+                Text(verbatim: String(count)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                Spacer()
+                if let note { Text(note).font(.caption).foregroundStyle(.secondary) }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            content()
+        }
+        .frame(minHeight: 110)
+    }
+
+    private var query: String { search.trimmingCharacters(in: .whitespaces) }
+
+    private var processes: [ProcessRow] {
+        monitor.processes.filter { r in
+            (filter.isEmpty ? r.disk > 0 : filter.contains(r.pid))
+                && (query.isEmpty || r.name.localizedCaseInsensitiveContains(query) || String(r.pid) == query)
+        }
+    }
+
+    /// Disk images only when a volume of theirs is mounted or they are busy: macOS keeps a dozen
+    /// simulator runtimes attached, which would bury the real disks.
+    private var disks: [PhysicalDisk] {
+        monitor.disks.filter { d in
+            d.connection != .diskImage || d.total > 0
+                || monitor.volumes.contains { $0.device.hasPrefix(d.bsdName + "s") }
+        }
+    }
+
+    private var hiddenImages: Int { monitor.disks.count - disks.count }
+
+    private var volumes: [VolumeInfo] {
+        guard !query.isEmpty, filter.isEmpty else { return monitor.volumes }
+        let hits = monitor.volumes.filter {
+            $0.name.localizedCaseInsensitiveContains(query) || $0.mountPoint.localizedCaseInsensitiveContains(query)
+        }
+        return hits.isEmpty ? monitor.volumes : hits
+    }
+}
+
+/// Small horizontal bar with a percentage, for active time and used space.
+private struct UsageBar: View {
+    var fraction: Double
+    var text: String
+    var color: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            GeometryReader { g in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(.quaternary)
+                    Capsule().fill(color).frame(width: max(0, g.size.width * min(max(fraction, 0), 1)))
+                }
+            }
+            .frame(height: 6)
+            Text(text).monospacedDigit().frame(width: 38, alignment: .trailing)
+        }
+    }
+}
+
 // MARK: - Síť
 
 private struct NetworkTab: View {
@@ -457,7 +660,7 @@ private struct NetworkTab: View {
                         .width(min: 100, ideal: 150)
                     TableColumn("Vzdálená adresa", value: \.remoteAddress) { c in Addr(host: c.remoteAddress, port: c.remotePort) }
                         .width(min: 100, ideal: 170)
-                    TableColumn("Stav", value: \.state) { c in Text(c.state).foregroundStyle(c.state == "Navázáno" ? .primary : .secondary) }
+                    TableColumn("Stav", value: \.state) { c in Text(c.state).foregroundStyle(c.isEstablished ? .primary : .secondary) }
                         .width(min: 70, ideal: 100)
                     TableColumn("↓", value: \.rateIn) { c in Rate(value: c.rateIn) }
                         .width(min: 54, ideal: 70)
@@ -487,7 +690,7 @@ private struct NetworkTab: View {
         }
     }
 
-    private func section(_ title: String, count: Int, @ViewBuilder content: () -> some View) -> some View {
+    private func section(_ title: LocalizedStringKey, count: Int, @ViewBuilder content: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text(title).font(.headline)
@@ -558,7 +761,7 @@ private struct Bytes: View {
 
     var body: some View {
         Num(text: value < 0 ? "–" : Fmt.bytes(UInt64(value)), zero: value < 0)
-            .help(value < 0 ? "Systém údaj o procesu jiného uživatele nesdělí. Doplní ho Nastavení → Údaje o systémových procesech." : "")
+            .help(value < 0 ? String(localized: "Systém údaj o procesu jiného uživatele nesdělí. Doplní ho Nastavení → Údaje o systémových procesech.") : "")
     }
 }
 
@@ -568,7 +771,7 @@ private struct Rate: View {
 
     var body: some View {
         Num(text: value < 0 ? "–" : value < 1 ? "0" : Fmt.rate(value), zero: value < 1)
-            .help(value < 0 ? "Systém údaj o procesu jiného uživatele nesdělí. Doplní ho Nastavení → Údaje o systémových procesech." : Fmt.rate(value))
+            .help(value < 0 ? String(localized: "Systém údaj o procesu jiného uživatele nesdělí. Doplní ho Nastavení → Údaje o systémových procesech.") : Fmt.rate(value))
     }
 }
 

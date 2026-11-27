@@ -4,6 +4,8 @@ options:
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
+  # Czech is the source language of the UI texts; English comes from Shared/Localizable.xcstrings.
+  developmentLanguage: cs
 
 settings:
   base:
@@ -14,10 +16,12 @@ settings:
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "Developer ID Application"
     ENABLE_HARDENED_RUNTIME: YES
-    MARKETING_VERSION: "1.1.0"
-    CURRENT_PROJECT_VERSION: 3
+    MARKETING_VERSION: "1.2.0"
+    CURRENT_PROJECT_VERSION: 4
     SWIFT_VERSION: "5.0"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
+    SWIFT_EMIT_LOC_STRINGS: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
 
 targets:
   MacMetrix:
@@ -44,6 +48,10 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleDisplayName: MacMetrix
+        # Fallback for languages without a translation: English, not the Czech source texts.
+        CFBundleDevelopmentRegion: en
+        # Czech has no .lproj of its own (the source texts are Czech), so declare both languages.
+        CFBundleLocalizations: [cs, en]
         LSUIElement: true
         AppGroupID: $(APP_GROUP_ID)
         CFBundleShortVersionString: $(MARKETING_VERSION)
@@ -75,6 +83,10 @@ targets:
       path: Widget/Info.plist
       properties:
         CFBundleDisplayName: MacMetrix
+        # Fallback for languages without a translation: English, not the Czech source texts.
+        CFBundleDevelopmentRegion: en
+        # Czech has no .lproj of its own (the source texts are Czech), so declare both languages.
+        CFBundleLocalizations: [cs, en]
         AppGroupID: $(APP_GROUP_ID)
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)

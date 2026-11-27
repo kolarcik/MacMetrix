@@ -105,13 +105,13 @@ struct MetricRow: View {
     private var detail: String {
         switch metric {
         case .cpu:
-            "usr \(Fmt.percent(snapshot.cpuUser)) · sys \(Fmt.percent(snapshot.cpuSystem)) · \(snapshot.cores.count) jader"
+            String(localized: "usr \(Fmt.percent(snapshot.cpuUser)) · sys \(Fmt.percent(snapshot.cpuSystem)) · \(snapshot.cores.count) jader")
         case .gpu:
-            snapshot.gpuMemory.map { "paměť \(Fmt.gb($0))" } ?? ""
+            snapshot.gpuMemory.map { String(localized: "paměť \(Fmt.gb($0))") } ?? ""
         case .ram:
             "\(Fmt.gb(snapshot.memUsed)) / \(Fmt.gb(snapshot.memTotal))" + (snapshot.swapUsed > 0 ? " · swap \(Fmt.gb(snapshot.swapUsed))" : "")
         case .disk:
-            "R \(Fmt.rate(snapshot.diskRead)) · W \(Fmt.rate(snapshot.diskWrite)) · \(Fmt.gb(snapshot.diskTotal - snapshot.diskUsed)) volno"
+            String(localized: "R \(Fmt.rate(snapshot.diskRead)) · W \(Fmt.rate(snapshot.diskWrite)) · \(Fmt.gb(snapshot.diskTotal - snapshot.diskUsed)) volno")
         case .net:
             "↓ \(Fmt.rate(snapshot.netIn))  ↑ \(Fmt.rate(snapshot.netOut))"
         case .battery:

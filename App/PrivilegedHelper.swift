@@ -2,18 +2,31 @@ import Foundation
 import ServiceManagement
 
 /// Registration of the read-only privileged helper (Settings → Monitor prostředků) and the XPC client
-/// the Resource Monitor's sampler uses. The user approves the daemon once in
-/// System Settings → General → Login Items; until then the app shows only what it can read itself.
+/// the Resource Monitor's sampler uses. It is the user's choice and off by default: nothing is registered
+/// until they switch it on, and then they approve the daemon once in System Settings → General → Login Items.
+/// Until then the app shows only what it can read itself.
 @MainActor
 final class PrivilegedHelper: ObservableObject {
     static let shared = PrivilegedHelper()
+    static let preferenceKey = "systemProcessHelper"
 
+    /// The user's setting. The app only asks the helper while it is on, even if the daemon stays registered.
+    @Published private(set) var isOn: Bool
     @Published private(set) var status: SMAppService.Status = .notRegistered
     @Published private(set) var error: String?
 
     private let service = SMAppService.daemon(plistName: HelperConstants.plistName)
 
-    private init() { refresh() }
+    private init() {
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: Self.preferenceKey) == nil {
+            // Off for new installs. A helper registered before the setting existed stays as the user left it.
+            let s = service.status
+            defaults.set(s == .enabled || s == .requiresApproval, forKey: Self.preferenceKey)
+        }
+        isOn = defaults.bool(forKey: Self.preferenceKey)
+        refresh()
+    }
 
     /// The launchd plist is in the app bundle. `SMAppService` reports a daemon that was never registered
     /// as `.notFound` too, so only a missing plist really means a broken installation.
@@ -25,10 +38,13 @@ final class PrivilegedHelper: ObservableObject {
     func refresh() {
         let s = service.status
         status = s == .notFound && isInstalled ? .notRegistered : s
-        HelperClient.shared.enabled = status == .enabled
+        HelperClient.shared.enabled = isOn && status == .enabled
     }
 
     func setEnabled(_ on: Bool) {
+        isOn = on
+        UserDefaults.standard.set(on, forKey: Self.preferenceKey)
+        if !on { HelperClient.shared.enabled = false }
         do {
             if on {
                 try service.register()
@@ -40,8 +56,10 @@ final class PrivilegedHelper: ObservableObject {
         } catch {
             // Not failures: registering an already approved daemon again, and "Operation not permitted",
             // which is how register() reports that the user still has to approve it in System Settings.
+            // Unregistering a daemon that isn't registered is not a failure either.
             let status = service.status
-            if !(on && (status == .enabled || status == .requiresApproval)) { self.error = error.localizedDescription }
+            let fine = on ? (status == .enabled || status == .requiresApproval) : (status != .enabled && status != .requiresApproval)
+            if !fine { self.error = error.localizedDescription }
         }
         refresh()
         if status == .requiresApproval { SMAppService.openSystemSettingsLoginItems() }

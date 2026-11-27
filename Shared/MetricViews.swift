@@ -19,9 +19,9 @@ enum Metric: String, CaseIterable, Identifiable {
         case .cpu: "CPU"
         case .gpu: "GPU"
         case .ram: "RAM"
-        case .disk: "Disk"
-        case .net: "Síť"
-        case .battery: "Baterie"
+        case .disk: String(localized: "Disk")
+        case .net: String(localized: "Síť")
+        case .battery: String(localized: "Baterie")
         }
     }
 
@@ -32,7 +32,7 @@ enum Metric: String, CaseIterable, Identifiable {
         case .gpu: "G"
         case .ram: "R"
         case .disk: "D"
-        case .net: "S"
+        case .net: String(localized: "S", comment: "One-letter label of the network metric (Síť) under the menu bar bars")
         case .battery: "B"
         }
     }

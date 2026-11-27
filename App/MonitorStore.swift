@@ -174,7 +174,7 @@ final class MonitorStore: ObservableObject {
         }
         launchAtLogin = SMAppService.mainApp.status == .enabled
         if SMAppService.mainApp.status == .requiresApproval {
-            loginItemError = "Povolte v Nastavení systému → Obecné → Položky při přihlášení."
+            loginItemError = String(localized: "Povolte v Nastavení systému → Obecné → Položky při přihlášení.")
         }
     }
 }

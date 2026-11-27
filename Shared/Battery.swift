@@ -74,9 +74,9 @@ enum Battery {
 
 extension Battery.Reading {
     var stateText: String {
-        if charging { return "Nabíjí se" }
-        if onAC { return fullyCharged ? "Nabito" : "Připojeno, nenabíjí" }
-        return "Na baterii"
+        if charging { return String(localized: "Nabíjí se") }
+        if onAC { return fullyCharged ? String(localized: "Nabito") : String(localized: "Připojeno, nenabíjí") }
+        return String(localized: "Na baterii")
     }
 
     /// "2:15" – hours and minutes left to empty or to full.
@@ -87,6 +87,6 @@ extension Battery.Reading {
     /// State with the remaining time, e.g. "Na baterii · zbývá 2:15".
     var summary: String {
         guard let t = remainingText else { return stateText }
-        return "\(stateText) · \(charging ? "do nabití" : "zbývá") \(t)"
+        return charging ? String(localized: "\(stateText) · do nabití \(t)") : String(localized: "\(stateText) · zbývá \(t)")
     }
 }

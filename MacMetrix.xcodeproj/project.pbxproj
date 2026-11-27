@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		07F2AC248833C905AC2EF853 /* PrivilegedHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F08C12CBB263DEE4BCC677B8 /* PrivilegedHelper.swift */; };
+		08906065E40DE4891401FB2A /* DiskMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1F5EA4F939097DD16D0B7EC /* DiskMonitor.swift */; };
 		0962B5398A1276925BBCFDF7 /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BD9BD0CE505FFEE77BF10EF /* PopoverView.swift */; };
 		218EAD16D63528D3206A1DFA /* MacMetrixWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFA564C84568B3235BB6CE8 /* MacMetrixWidget.swift */; };
 		277F532D63F7B667C2AC440B /* ProcReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6DE0A11BDD33EFCA035195 /* ProcReader.swift */; };
@@ -33,9 +34,11 @@
 		B2EFA800D1ED29D6980E01E5 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 380A689F3020B81A5D40E674 /* main.swift */; };
 		B3B28F89257446DFE6F86919 /* ProcessMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D14A48DE36CA87116392802B /* ProcessMonitor.swift */; };
 		B6035833EE3793A94201FC20 /* tech.synot.MacMetrix.Helper.plist in CopyFiles */ = {isa = PBXBuildFile; fileRef = 50C7B0741E3892E889E4ED3D /* tech.synot.MacMetrix.Helper.plist */; };
+		BEB1DEC089A90C9EBF1A8E0F /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 6B64962067D545B2220AABC4 /* Localizable.xcstrings */; };
 		C13ECF6D189F7364AEE41559 /* ResourceMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FCF9DE8B9C770C0B1B24335 /* ResourceMonitor.swift */; };
 		C19BB0DCB4E513661107E8BF /* MacMetrixWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7BA535540A605EF76A9B4A16 /* MacMetrixWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C2BC77ED73EE272178887B0D /* Battery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 477BB0308C85B76EC5C99FC0 /* Battery.swift */; };
+		CA49DBCEF9B465383331730F /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 6B64962067D545B2220AABC4 /* Localizable.xcstrings */; };
 		D00D7E4762BBFD64B2102537 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17DC8FED32A30D493F1D080 /* SharedStore.swift */; };
 		D799B4FBD2A9A58F73EE33B9 /* MetricViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2965447E6B504781A65A7049 /* MetricViews.swift */; };
 		DF0A00CC93B47D6F50D33356 /* CreatorLogo.png in Resources */ = {isa = PBXBuildFile; fileRef = A4B7EF4FA70FDD53B1CB1CAE /* CreatorLogo.png */; };
@@ -116,6 +119,7 @@
 		50C7B0741E3892E889E4ED3D /* tech.synot.MacMetrix.Helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = tech.synot.MacMetrix.Helper.plist; sourceTree = "<group>"; };
 		50F60B825524C59FFE964B2A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		5BA04CD61933CDC23429C51F /* DemoMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoMode.swift; sourceTree = "<group>"; };
+		6B64962067D545B2220AABC4 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		6EE08E6CB12C47FC7EBCA3C3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		7BA535540A605EF76A9B4A16 /* MacMetrixWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MacMetrixWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7F22A3F2F63994A347A54195 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -124,6 +128,7 @@
 		A6F46AF2333D45F01F6FFCD8 /* HelperProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperProtocol.swift; sourceTree = "<group>"; };
 		AA948F60DE45395DCB23EC28 /* ResourceMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceMonitorView.swift; sourceTree = "<group>"; };
 		B17DC8FED32A30D493F1D080 /* SharedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStore.swift; sourceTree = "<group>"; };
+		C1F5EA4F939097DD16D0B7EC /* DiskMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskMonitor.swift; sourceTree = "<group>"; };
 		CF6DE0A11BDD33EFCA035195 /* ProcReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcReader.swift; sourceTree = "<group>"; };
 		CFA138AAC6D8FF705182C1B1 /* MacMetrixWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MacMetrixWidget.entitlements; sourceTree = "<group>"; };
 		CFE69032A74B0158869C9480 /* WhenVisible.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhenVisible.swift; sourceTree = "<group>"; };
@@ -163,6 +168,7 @@
 			children = (
 				477BB0308C85B76EC5C99FC0 /* Battery.swift */,
 				5BA04CD61933CDC23429C51F /* DemoMode.swift */,
+				6B64962067D545B2220AABC4 /* Localizable.xcstrings */,
 				2965447E6B504781A65A7049 /* MetricViews.swift */,
 				B17DC8FED32A30D493F1D080 /* SharedStore.swift */,
 				4A0A31939BB15044A41F2748 /* SystemSampler.swift */,
@@ -179,6 +185,7 @@
 				E6F2C67DEFEBBDCE938F3E54 /* CreatorLogo-dark.png */,
 				A4B7EF4FA70FDD53B1CB1CAE /* CreatorLogo.png */,
 				3816B23FB75B2B478874CE4F /* DiskCleanup.swift */,
+				C1F5EA4F939097DD16D0B7EC /* DiskMonitor.swift */,
 				11F12CCA9F1F6745008C9790 /* Info.plist */,
 				1E40E978D8F53A81D52846A6 /* MacMetrix.entitlements */,
 				3BDE714A7DA483E11604DC4C /* MacMetrixApp.swift */,
@@ -276,6 +283,7 @@
 			buildConfigurationList = BCB0C655A749C8514D182FA2 /* Build configuration list for PBXNativeTarget "MacMetrixWidget" */;
 			buildPhases = (
 				AD591031E0D2C6FD7E98DC3D /* Sources */,
+				65A602C85A69FB0A80297488 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -312,10 +320,11 @@
 				};
 			};
 			buildConfigurationList = F4FE5D31353EB96D8566DEB3 /* Build configuration list for PBXProject "MacMetrix" */;
-			developmentRegion = en;
+			developmentRegion = cs;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
+				cs,
 				en,
 			);
 			mainGroup = 422C6D4281187E697814241B;
@@ -333,6 +342,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		65A602C85A69FB0A80297488 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BEB1DEC089A90C9EBF1A8E0F /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CD2DF0ECFD23D5755F05B160 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -340,6 +357,7 @@
 				838FCCEA584DBC2BA486A7E6 /* Assets.xcassets in Resources */,
 				36A238276526CA243489545F /* CreatorLogo-dark.png in Resources */,
 				DF0A00CC93B47D6F50D33356 /* CreatorLogo.png in Resources */,
+				CA49DBCEF9B465383331730F /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -355,6 +373,7 @@
 				A67A294B455B0B101ED6A9BE /* CleanupView.swift in Sources */,
 				37BB6F758E3886EBA1A0FD0E /* DemoMode.swift in Sources */,
 				399E2A51A786B2EF56A3378C /* DiskCleanup.swift in Sources */,
+				08906065E40DE4891401FB2A /* DiskMonitor.swift in Sources */,
 				49A6CD107D17717DF0035FE5 /* HelperProtocol.swift in Sources */,
 				5E34924069F87B75FBBE54E0 /* MacMetrixApp.swift in Sources */,
 				F1E14790B2F880C346043EC1 /* MetricDetailView.swift in Sources */,
@@ -451,7 +470,7 @@
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 3ZN9TSG9S7;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -471,14 +490,16 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
@@ -573,7 +594,7 @@
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 3ZN9TSG9S7;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -587,13 +608,15 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 			};

@@ -38,7 +38,7 @@ struct CleanupView: View {
     }
 
     private var confirmTitle: String {
-        "Uklidit \(Fmt.bytes(model.selectedSize))? Vybrané kategorie: \(model.results.filter(\.selected).count)"
+        String(localized: "Uklidit \(Fmt.bytes(model.selectedSize))? Vybrané kategorie: \(model.results.filter(\.selected).count)")
     }
 
     private var freeSpace: UInt64 { store.current.diskTotal > store.current.diskUsed ? store.current.diskTotal - store.current.diskUsed : 0 }
@@ -68,7 +68,7 @@ struct CleanupView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Složka s projekty").font(.headline)
-                        Text(model.projectsRoot?.path ?? "Nevybráno – build výstupy projektů se nebudou hledat")
+                        Text(model.projectsRoot?.path ?? String(localized: "Nevybráno – build výstupy projektů se nebudou hledat"))
                             .font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                     }
                     Spacer()
@@ -90,7 +90,7 @@ struct CleanupView: View {
         .padding(20)
     }
 
-    private func progress(_ title: String) -> some View {
+    private func progress(_ title: LocalizedStringKey) -> some View {
         VStack(spacing: 12) {
             ProgressView(value: model.progress)
                 .frame(width: 320)
@@ -189,7 +189,7 @@ private struct CleanupRow: View {
 
 private struct StepIndicator: View {
     var phase: DiskCleanupModel.Phase
-    private let steps = ["Start", "Hledání", "Výběr", "Úklid"]
+    private let steps: [LocalizedStringKey] = ["Start", "Hledání", "Výběr", "Úklid"]
 
     private var current: Int {
         switch phase {

@@ -23,45 +23,45 @@ struct CleanupCategory: Identifiable {
     static let home = FileManager.default.homeDirectoryForCurrentUser.path
 
     static let all: [CleanupCategory] = [
-        .init(id: "derived", title: "Xcode – DerivedData", detail: "Mezivýsledky buildů. Xcode je při dalším buildu vytvoří znovu.",
+        .init(id: "derived", title: String(localized: "Xcode – DerivedData"), detail: String(localized: "Mezivýsledky buildů. Xcode je při dalším buildu vytvoří znovu."),
               symbol: "hammer", source: .contents(["~/Library/Developer/Xcode/DerivedData"]), selectedByDefault: true),
-        .init(id: "archives", title: "Xcode – archivy", detail: "Archivy aplikací včetně dSYM. Smaž jen, pokud je nepotřebuješ k symbolikaci pádů.",
+        .init(id: "archives", title: String(localized: "Xcode – archivy"), detail: String(localized: "Archivy aplikací včetně dSYM. Smaž jen, pokud je nepotřebuješ k symbolikaci pádů."),
               symbol: "archivebox", source: .contents(["~/Library/Developer/Xcode/Archives"]), selectedByDefault: false),
-        .init(id: "devicesupport", title: "Xcode – podpora zařízení", detail: "Symboly pro ladění na fyzických zařízeních. Po připojení zařízení se stáhnou znovu.",
+        .init(id: "devicesupport", title: String(localized: "Xcode – podpora zařízení"), detail: String(localized: "Symboly pro ladění na fyzických zařízeních. Po připojení zařízení se stáhnou znovu."),
               symbol: "iphone", source: .contents([
                   "~/Library/Developer/Xcode/iOS DeviceSupport", "~/Library/Developer/Xcode/watchOS DeviceSupport",
                   "~/Library/Developer/Xcode/tvOS DeviceSupport", "~/Library/Developer/Xcode/visionOS DeviceSupport",
               ]), selectedByDefault: true),
-        .init(id: "previews", title: "Xcode – SwiftUI Previews", detail: "Cache náhledů SwiftUI.",
+        .init(id: "previews", title: String(localized: "Xcode – SwiftUI Previews"), detail: String(localized: "Cache náhledů SwiftUI."),
               symbol: "eye", source: .contents(["~/Library/Developer/Xcode/UserData/Previews"]), selectedByDefault: true),
-        .init(id: "simcaches", title: "Simulátory – cache", detail: "Dočasná data CoreSimulatoru.",
+        .init(id: "simcaches", title: String(localized: "Simulátory – cache"), detail: String(localized: "Dočasná data CoreSimulatoru."),
               symbol: "ipad.and.iphone", source: .contents(["~/Library/Developer/CoreSimulator/Caches"]), selectedByDefault: true),
-        .init(id: "simunavailable", title: "Nedostupné simulátory", detail: "Simulátory pro verze iOS, které už nejsou nainstalované. Mažou se vždy trvale.",
+        .init(id: "simunavailable", title: String(localized: "Nedostupné simulátory"), detail: String(localized: "Simulátory pro verze iOS, které už nejsou nainstalované. Mažou se vždy trvale."),
               symbol: "xmark.app", source: .unavailableSimulators, selectedByDefault: true),
-        .init(id: "spm", title: "Swift Package Manager", detail: "Stažené balíčky a repozitáře SPM.",
+        .init(id: "spm", title: String(localized: "Swift Package Manager"), detail: String(localized: "Stažené balíčky a repozitáře SPM."),
               symbol: "shippingbox", source: .contents(["~/Library/Caches/org.swift.swiftpm"]), selectedByDefault: true),
-        .init(id: "pods", title: "CocoaPods / Carthage", detail: "Cache stažených podů a frameworků.",
+        .init(id: "pods", title: String(localized: "CocoaPods / Carthage"), detail: String(localized: "Cache stažených podů a frameworků."),
               symbol: "shippingbox.fill", source: .contents(["~/Library/Caches/CocoaPods", "~/Library/Caches/org.carthage.CarthageKit"]),
               selectedByDefault: true),
-        .init(id: "projects", title: "Build výstupy projektů", detail: "Složky bin/obj (.NET) a .build (Swift) v projektech.",
+        .init(id: "projects", title: String(localized: "Build výstupy projektů"), detail: String(localized: "Složky bin/obj (.NET) a .build (Swift) v projektech."),
               symbol: "folder.badge.gearshape", source: .projectOutputs, selectedByDefault: true),
-        .init(id: "nugethttp", title: ".NET – NuGet cache", detail: "HTTP a plugin cache NuGetu.",
+        .init(id: "nugethttp", title: String(localized: ".NET – NuGet cache"), detail: String(localized: "HTTP a plugin cache NuGetu."),
               symbol: "network", source: .contents([
                   "~/.local/share/NuGet/http-cache", "~/.local/share/NuGet/v3-cache", "~/.local/share/NuGet/plugins-cache",
               ]), selectedByDefault: true),
-        .init(id: "nugetpackages", title: ".NET – NuGet balíčky", detail: "Globální složka balíčků (~/.nuget/packages). Při dalším restore se stáhnou znovu.",
+        .init(id: "nugetpackages", title: String(localized: ".NET – NuGet balíčky"), detail: String(localized: "Globální složka balíčků (~/.nuget/packages). Při dalším restore se stáhnou znovu."),
               symbol: "cube.box", source: .contents(["~/.nuget/packages"]), selectedByDefault: false),
-        .init(id: "gradle", title: "Gradle cache", detail: "Cache závislostí a buildů Gradle (Android).",
+        .init(id: "gradle", title: String(localized: "Gradle cache"), detail: String(localized: "Cache závislostí a buildů Gradle (Android)."),
               symbol: "cube", source: .contents(["~/.gradle/caches"]), selectedByDefault: false),
-        .init(id: "node", title: "npm / Yarn cache", detail: "Cache stažených JavaScriptových balíčků.",
+        .init(id: "node", title: String(localized: "npm / Yarn cache"), detail: String(localized: "Cache stažených JavaScriptových balíčků."),
               symbol: "curlybraces", source: .contents(["~/.npm/_cacache", "~/Library/Caches/Yarn"]), selectedByDefault: true),
-        .init(id: "brew", title: "Homebrew cache", detail: "Stažené instalační balíčky Homebrew.",
+        .init(id: "brew", title: String(localized: "Homebrew cache"), detail: String(localized: "Stažené instalační balíčky Homebrew."),
               symbol: "mug", source: .contents(["~/Library/Caches/Homebrew"]), selectedByDefault: true),
-        .init(id: "temp", title: "Dočasné soubory", detail: "Položky v dočasné složce uživatele starší než 3 dny.",
+        .init(id: "temp", title: String(localized: "Dočasné soubory"), detail: String(localized: "Položky v dočasné složce uživatele starší než 3 dny."),
               symbol: "clock.arrow.circlepath", source: .olderThan([NSTemporaryDirectory()], days: 3), selectedByDefault: true),
-        .init(id: "logs", title: "Logy", detail: "Logy aplikací a hlášení o pádech starší než 7 dní.",
+        .init(id: "logs", title: String(localized: "Logy"), detail: String(localized: "Logy aplikací a hlášení o pádech starší než 7 dní."),
               symbol: "doc.text", source: .olderThan(["~/Library/Logs"], days: 7), selectedByDefault: true),
-        .init(id: "trash", title: "Koš", detail: "Obsah Koše. Maže se vždy trvale.",
+        .init(id: "trash", title: String(localized: "Koš"), detail: String(localized: "Obsah Koše. Maže se vždy trvale."),
               symbol: "trash", source: .contents(["~/.Trash"]), selectedByDefault: false),
     ]
 }
@@ -189,8 +189,8 @@ final class DiskCleanupModel: ObservableObject {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
-        panel.prompt = "Vybrat"
-        panel.message = "Složka s projekty, ve které se hledají build výstupy (bin, obj, .build)"
+        panel.prompt = String(localized: "Vybrat")
+        panel.message = String(localized: "Složka s projekty, ve které se hledají build výstupy (bin, obj, .build)")
         panel.directoryURL = projectsRoot
         if panel.runModal() == .OK { projectsRoot = panel.url }
     }

@@ -134,7 +134,7 @@ struct MetricDetailView: View {
             if e > 0, s.cores.count > e {
                 DetailRow("Efektivní jádra", Fmt.percent(avg(s.cores.prefix(e))), dot: .teal)
                 DetailRow("Výkonná jádra", Fmt.percent(avg(s.cores.dropFirst(e))), dot: .indigo)
-                DetailRow("Jádra", "\(s.cores.count - e) výkonných + \(e) efektivních")
+                DetailRow("Jádra", String(localized: "\(s.cores.count - e) výkonných + \(e) efektivních"))
             } else {
                 DetailRow("Jádra", "\(s.cores.count)")
             }
@@ -176,11 +176,11 @@ struct MetricDetailView: View {
                 if let t = b.remainingText {
                     DetailRow(b.charging ? "Do plného nabití" : "Zbývá", t)
                 } else if !b.onAC {
-                    DetailRow("Zbývá", "Počítám…")
+                    DetailRow("Zbývá", String(localized: "Počítám…"))
                 }
-                DetailRow("Zdroj napájení", b.onAC ? (b.adapterWatts.map { "Adaptér \($0) W" } ?? "Adaptér") : "Baterie")
+                DetailRow("Zdroj napájení", b.onAC ? (b.adapterWatts.map { String(localized: "Adaptér \($0) W") } ?? String(localized: "Adaptér")) : String(localized: "Baterie"))
             } else {
-                DetailRow("Baterie", "Nedostupná")
+                DetailRow("Baterie", String(localized: "Nedostupná"))
             }
         }
     }
@@ -235,9 +235,9 @@ struct MetricDetailView: View {
 
     private var pressureText: String {
         switch s.memPressure {
-        case 1: "Normální"
-        case 2: "Zvýšený"
-        case 4: "Kritický"
+        case 1: String(localized: "Normální")
+        case 2: String(localized: "Zvýšený")
+        case 4: String(localized: "Kritický")
         default: "–"
         }
     }
@@ -289,9 +289,9 @@ struct MetricDetailView: View {
 
     private var processColumn: String {
         switch metric {
-        case .cpu: "Využití"
-        case .ram: "Paměť"
-        case .disk: "Čtení / zápis"
+        case .cpu: String(localized: "Využití")
+        case .ram: String(localized: "Paměť")
+        case .disk: String(localized: "Čtení / zápis")
         case .net: "↓ / ↑"
         case .battery: "CPU"
         case .gpu: ""
@@ -317,12 +317,12 @@ struct MetricDetailView: View {
 extension Metric {
     var longTitle: String {
         switch self {
-        case .cpu: "Procesor"
-        case .gpu: "Grafika"
-        case .ram: "Paměť"
-        case .disk: "Disk"
-        case .net: "Síť"
-        case .battery: "Baterie"
+        case .cpu: String(localized: "Procesor")
+        case .gpu: String(localized: "Grafika")
+        case .ram: String(localized: "Paměť")
+        case .disk: String(localized: "Disk")
+        case .net: String(localized: "Síť")
+        case .battery: String(localized: "Baterie")
         }
     }
 }
@@ -342,7 +342,7 @@ extension Fmt {
 }
 
 struct GaugeSpec {
-    var caption: String
+    var caption: LocalizedStringKey
     var value: Double
     var label: String
     var color: Color
@@ -364,12 +364,13 @@ private struct SmallGauge: View {
 
 /// Centered uppercase caption between two hairlines.
 struct SectionHeader: View {
-    var title: String
-    init(_ title: String) { self.title = title }
+    var title: LocalizedStringKey
+    init(_ title: LocalizedStringKey) { self.title = title }
     var body: some View {
         HStack(spacing: 8) {
             line
-            Text(title.uppercased())
+            Text(title)
+                .textCase(.uppercase)
                 .font(.system(size: 9, weight: .semibold))
                 .kerning(0.8)
                 .foregroundStyle(.secondary)
@@ -383,11 +384,19 @@ struct SectionHeader: View {
 
 /// "● Label ........ value" row.
 struct DetailRow: View {
-    var label: String
+    var label: Text
     var value: String
     var dot: Color?
-    init(_ label: String, _ value: String, dot: Color? = nil) {
-        self.label = label
+    /// Literal labels are localized, like `Text("…")`.
+    init(_ label: LocalizedStringKey, _ value: String, dot: Color? = nil) {
+        self.label = Text(label)
+        self.value = value
+        self.dot = dot
+    }
+    /// Data labels (interface names…) are shown verbatim, like `Text(someString)`.
+    @_disfavoredOverload
+    init<S: StringProtocol>(_ label: S, _ value: String, dot: Color? = nil) {
+        self.label = Text(label)
         self.value = value
         self.dot = dot
     }
@@ -396,7 +405,7 @@ struct DetailRow: View {
             if let dot {
                 RoundedRectangle(cornerRadius: 2).fill(dot).frame(width: 9, height: 9)
             }
-            Text(label).lineLimit(1)
+            label.lineLimit(1)
             Spacer(minLength: 8)
             Text(value).fontWeight(.semibold).monospacedDigit().lineLimit(1)
         }

@@ -131,13 +131,13 @@ struct MacMetrixWidgetView: View {
         let s = entry.snapshot
         switch m {
         case .cpu: return "load \(Fmt.load(s.load))"
-        case .gpu: return s.gpuMemory.map { "paměť \(Fmt.gb($0))" } ?? ""
+        case .gpu: return s.gpuMemory.map { String(localized: "paměť \(Fmt.gb($0))") } ?? ""
         case .ram: return "\(Fmt.gb(s.memUsed)) / \(Fmt.gb(s.memTotal))"
         case .disk: return "R \(Fmt.rate(s.diskRead)) W \(Fmt.rate(s.diskWrite))"
         case .net: return "IN \(Fmt.rate(s.netIn)) · OUT \(Fmt.rate(s.netOut))"
         case .battery:
             guard let b = s.battery else { return "" }
-            return b.remainingText.map { "\(b.charging ? "do nabití" : "zbývá") \($0)" } ?? b.stateText
+            return b.remainingText.map { b.charging ? String(localized: "do nabití \($0)") : String(localized: "zbývá \($0)") } ?? b.stateText
         }
     }
 }
